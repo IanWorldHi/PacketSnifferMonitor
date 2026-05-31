@@ -27,7 +27,7 @@ int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP
 
 int socket(int domain, int type, int protocol); ie) socket(AF_INET, SOCK_STREAM, 0) for TCP
 int bind(int sockfd, struct sockaddr *my_addr, int addrlen); //sockfd from socket, my_addr ur address info (as the server?)
-int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); 
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); //sockaddr info on desitination ipaddr and port
 
  */
 

@@ -16,6 +16,7 @@ int main(){
     hints.ai_socktype = SOCK_STREAM;
     
     getaddrinfo("www.example.com", "3490", &hints, &res); //localhost, port 3490, etc
+    //technically need error handle gai too
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol); 
     if(sockfd==-1){
         perror("socket");

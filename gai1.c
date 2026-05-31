@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
         }
         /*
         tryagain:
-        if(select(n, &readfds, NULL, NULL)){
+        if(select(n, &readfds, NULL, NULL)==-1){
             if(errno==EINTR){
                 goto tryagain;
             }

@@ -19,16 +19,24 @@ struct sockaddr_in {
     struct in_addr     sin_addr;    // Internet address
     unsigned char      sin_zero[8]; // Same size as struct sockaddr
 };
-
 int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP
                 const char *service,  // e.g. "http" or port number
                 const struct addrinfo *hints,
                 struct addrinfo **res);
+struct sockaddr_storage { //fore if dont konw ipv4 ipv6
+    sa_family_t  ss_family;     // address family
+    char        __ss_pad1[_SS_PAD1SIZE];
+    uint64_t    __ss_align;   
+    char        __ss_pad2[_SS_PAD2SIZE];
+};
 
 int socket(int domain, int type, int protocol); ie) socket(AF_INET, SOCK_STREAM, 0) for TCP
 int bind(int sockfd, struct sockaddr *my_addr, int addrlen); //sockfd from socket, my_addr ur address info (as the server?)
 int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); //sockaddr info on desitination ipaddr and port
-
+int listen(int sockfd, int backlog); //backlog num of connections allowed on incoming queue
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen); 
+int send(int sockfd, const void *msg, int len, int flags); 
+int recv(int sockfd, void *buf, int len, int flags);
  */
 
 

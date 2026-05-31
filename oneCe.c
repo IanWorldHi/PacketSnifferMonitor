@@ -10,9 +10,13 @@ int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP
 
 
 #include <stdio.h>
-
-
-
+#include <string.h>
+#include <sys/types.h> //some types ie) size_t cuz used in some of the funcs i think - just std syntax
+#include <sys/socket.h> //core API
+#include <netdb.h> //network db ops ie) getaddrinfo
+#include <arpa/inet.h> //address conversion ie) htons
+#include <netinet/in.h> //ip structs ie) sockaddr_in
+//} std includes convention
 
 
 int main(){

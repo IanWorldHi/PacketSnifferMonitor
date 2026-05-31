@@ -46,7 +46,25 @@ int main(int argc, char *argv[]){
         }
         //convert ip to str
         inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+
+        int s;
+        s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if(s==-1){
+            perror("socket");
+        }
+        /*
+        tryagain:
+        if(select(n, &readfds, NULL, NULL)){
+            if(errno==EINTR){
+                goto tryagain;
+            }
+            perror("select");
+            exit(1);
+        }
+        */
+        printf("socket (testLearning): %d\n", s);
         printf("IP version: %s -- address: %s\n", ipver, ipstr);
+        close(s);
     }
     freeaddrinfo(res);
     return 0;

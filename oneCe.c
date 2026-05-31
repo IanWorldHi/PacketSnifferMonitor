@@ -1,11 +1,34 @@
-/* #include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+/* 
+struct addrinfo {
+    int              ai_flags;     // AI_PASSIVE, AI_CANONNAME, etc.
+    int              ai_family;    // AF_INET, AF_INET6, AF_UNSPEC
+    int              ai_socktype;  // SOCK_STREAM, SOCK_DGRAM
+    int              ai_protocol;  // use 0 for "any"
+    size_t           ai_addrlen;   // size of ai_addr in bytes
+    struct sockaddr *ai_addr;      // struct sockaddr_in or _in6
+    char            *ai_canonname; // full canonical hostname
+    struct addrinfo *ai_next;      // linked list, next node
+};
+struct sockaddr {
+    unsigned short    sa_family;    // address family, AF_xxx
+    char              sa_data[14];  // 14 bytes of protocol address
+}; 
+struct sockaddr_in {
+    short int          sin_family;  // Address family, AF_INET
+    unsigned short int sin_port;    // Port number
+    struct in_addr     sin_addr;    // Internet address
+    unsigned char      sin_zero[8]; // Same size as struct sockaddr
+};
 
 int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP
                 const char *service,  // e.g. "http" or port number
                 const struct addrinfo *hints,
                 struct addrinfo **res);
+
+int socket(int domain, int type, int protocol); ie) socket(AF_INET, SOCK_STREAM, 0) for TCP
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen); //sockfd from socket, my_addr ur address info (as the server?)
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); 
+
  */
 
 
@@ -38,7 +61,6 @@ int main(){
     }
 
     //addrinfo use
-
 
     freeaddrinfo(res); //frees linked list - 
 

@@ -29,6 +29,8 @@ int main(){
         perror("connect");
         exit(1);
     }
+
+    //close sockets and free linkedlist
 }
 
 

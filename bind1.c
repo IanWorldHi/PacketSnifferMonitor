@@ -29,11 +29,13 @@ int main(){
     //SOL_SOCKET is the level for socket options - imported constant
     //SO_REUSEADDR num meaning reuse, &yes is (1 or 0) for SO_REUSEADDR
 
-    int b = bind(sockfd, res->ai_addr, res->ai_addrlen); 
+    int b = bind(sockfd, res->ai_addr, res->ai_addrlen);  //binds the socket to port, socket still same number and use it
     if(b==-1){
         perror("bind");
         exit(1);
     }
+
+    //close sockets and free linkedlist
 }
 
 

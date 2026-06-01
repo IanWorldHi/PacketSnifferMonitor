@@ -35,9 +35,15 @@ int bind(int sockfd, struct sockaddr *my_addr, int addrlen); //sockfd from socke
 int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); //sockaddr info on desitination ipaddr and port
 int listen(int sockfd, int backlog); //backlog num of connections allowed on incoming queue
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen); 
-int send(int sockfd, const void *msg, int len, int flags); 
-int recv(int sockfd, void *buf, int len, int flags);
- */
+int send(int sockfd, const void *msg, int len, int flags); //len in bytes, flag usually 0(default), returns num bytes sent, -1 on error
+int recv(int sockfd, void *buf, int len, int flags); //buf for buffer to store into, returns num bytes sent 0 on disconenct, -1 on error
+int sendto(int sockfd, const void *msg, int len, unsigned int flags, const struct sockaddr *to, socklen_t tolen); //datagram
+int recvfrom(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen); 
+close(sockfd); 
+int shutdown(int sockfd, int how); //0 means no recieves, 1 means no sends, 2 means both, doesn't actually close() - 0 success 1 error
+int getpeername(int sockfd, struct sockaddr *addr, int *addrlen); //stores info abt other side of connection in addr - then call ntp getnameinfo gethostbyaddr etc, -1 errno
+int gethostname(char *hostname, size_t size); //0, -1 errno
+*/
 
 
 #include <stdio.h>

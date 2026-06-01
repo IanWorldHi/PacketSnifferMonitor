@@ -47,6 +47,10 @@ int main(void){
         exit(1);
     }
 
+    //close sockets and free linkedlist
+    close(new_fd);
+    close(sockfd);
+    freeaddrinfo(res);
 }
 
 

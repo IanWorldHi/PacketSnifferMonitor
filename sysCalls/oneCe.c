@@ -29,6 +29,13 @@ struct sockaddr_storage { //fore if dont konw ipv4 ipv6
     uint64_t    __ss_align;   
     char        __ss_pad2[_SS_PAD2SIZE];
 };
+struct sigaction {
+    void     (*sa_handler)(int);   // pointer to your handler function
+    sigset_t   sa_mask;            // signals to block while handler runs - signal set: collection of signals to temp block during signal use sigemptyset(&sa.sa_mask) to set
+    int        sa_flags;           // option flags that tweak behavior
+    // (a few other members you can ignore for now)
+};
+
 
 int socket(int domain, int type, int protocol); ie) socket(AF_INET, SOCK_STREAM, 0) for TCP
 int bind(int sockfd, struct sockaddr *my_addr, int addrlen); //sockfd from socket, my_addr ur address info (as the server?)

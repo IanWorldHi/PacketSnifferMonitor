@@ -1,5 +1,6 @@
 /*
-** server.c -- a stream socket server demo
+stream socket server demo
+Only ipv4 right now
 */
 
 #include <stdio.h>

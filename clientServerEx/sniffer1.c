@@ -33,9 +33,27 @@
 //alternative, #include <err.h> err(EXIT_FAILURE, "msg") or errx
 
 typedef struct{
+    uint8_t transfer_protocol;
+    char *source_ip;
+    char *dest_ip;
+    uint16_t source_port;
+    uint16_t dest_port;
+    char *source_ifname; //interface name
+    char *dest_ifname;
+    uint8_t source_mac[6]; //6 bytes
+    uint8_t dest_mac[6];
+} package_filter_t;
+
+struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses
+
+int main(int argc, char *argv[]){
+    int c;
+    char log[225]; //log message, 225 is max size, taken as input from user
+    FILE *log_file = NULL; //file pointer for log file, std I/O setup
+    
+    packet_filter_t filter = {0, NULL, NULL, 0, 0, NULL, NULL}; //initialize default
     
 }
-
 
 
 

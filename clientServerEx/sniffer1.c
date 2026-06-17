@@ -1,7 +1,10 @@
 //sniff sniff
 #include <stdio.h>
 #include <stdlib.h>//malloc
-#include <unistd.h>
+
+#include <unistd.h> 
+#include <getopt.h> //gives optarg for getopt(linux, the ^ otherwise i think)
+
 #include <errno.h>
 #include <string.h>//memset
 #include <sys/types.h>
@@ -23,7 +26,6 @@
 #include <netinet/if_ether.h>	//For ETH_P_ALL
 #include <net/ethernet.h>	//For ether_header
 
-#include <getopt.h>
 #include <net/if.h>
 
 
@@ -42,9 +44,27 @@ typedef struct{
     char *dest_ifname;
     uint8_t source_mac[6]; //6 bytes
     uint8_t dest_mac[6];
-} package_filter_t;
+} packet_filter_t;
 
-struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses
+struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses, if want can add ipv6 later
+
+void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
+    int fd;
+    struct ifreq ifr; //interface request struct for ioctl given interface name return oen field
+    fd = socket(AF_INET, SOCK_DGRAM, 0); //need a fd for ioctl
+    if(fd < 0){
+        exit_with_error("socket creation failed for ioctl");
+    }
+    strlcpy(ifr.ifr_name, ifname, IFNAMSIZ); //copy interface name to ifreq w/size constraint 
+    if(ioctl(fd, SIOCGIFHWADDR, &ifr) < 0){
+        close(fd);
+        exit_with_error("ioctl failed to get mac address");
+    }
+    close(fd);
+    if(strcmp(if_type, "source") == 0){
+        strcpy(filter->source_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data); //copying mac addr
+    }
+}
 
 int main(int argc, char *argv[]){
     int c;
@@ -52,7 +72,98 @@ int main(int argc, char *argv[]){
     FILE *log_file = NULL; //file pointer for log file, std I/O setup
     
     packet_filter_t filter = {0, NULL, NULL, 0, 0, NULL, NULL}; //initialize default
-    
+
+    struct sockaddr saddr; //pass to recieve from
+    int sockfd, saddr_len, buf_len;
+
+    uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet
+    memest(buffer, 0, 65536); //zero out buffer
+
+    sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL)); //family packet, type raw, have to use ETH_P_ALL bc it will not give u IP packets going out otherwise
+    //sits below IP layer, not necessarily actually ethernet just in that format, wifi gets changed to it too - its just an old name
+    if(sockfd < 0){
+        exit_with_error("socket creation failed raw socket at packet layer aka packet socket");
+    }
+
+    int c;
+    while(1){
+        //getopt to parse comd line args
+        // so --sip and -s both work
+        static struct option long_options[] = {
+            {"sip", required_argument, NULL, 's'}; //source ip
+            {"dip", required_argument, NULL, 'd'}; //dest ip
+            {"sport", required_argument, NULL, 'p'}; //source port
+            {"dport", required_argument, NULL, 'q'}; //dest port
+            {"sif", required_argument, NULL, 'i'}; //source interface
+            {"dif", required_argument, NULL, 'j'}; //dest interface
+            {"logfile", required_argument, NULL, 'f'}; //log file name
+            {"tcp", no_argument, NULL, 't'},
+            {"udp", no_argument, NULL, 'u'},
+            {0, 0, 0, 0} //end of options
+        };
+        c = getopt_long(argc, argv, "s:d:p:q:i:j:l:tu", long_options, NULL); 
+        //: means required argument, :: means optional, none means no args
+
+        if(c == -1){
+            break;
+        }
+        switch(c){
+            case 's': //sip
+                filter.source_ip = optarg;
+                break;
+            case 'd': //dip
+                filter.dest_ip = optarg;
+                break;
+            case 'p': //sport
+                filter.source_port = atoi(optarg); //from getopt, string to int atoi ofc
+                break;
+            case 'q': //dport
+                filter.source_port = atoi(optarg);
+                break;
+            case 'i': //sif
+                filter.source_ifname = optarg;
+                break;
+            case 'j': //dif
+                filter.dest_ifname = optarg;
+                break;
+            case 'f': //logfile
+                strcpy(log, optarg, sizeof log -1); //copy log file name to var
+                //can change to char* or i gotta do bound checks 
+                break;
+            case 't': //tcp
+                filter.transfer_protocol = IPPROTO_TCP; 
+                break;
+            case 'u': //udp
+                filter.transfer_protocol = IPPROTO_UDP;
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [--sip source_ip] [--dip dest_ip] [--sport source_port] [--dport dest_port] [--sif source_interface] [--dif dest_interface] [--logfile log_file_name] [--tcp|--udp]\n", argv[0]);
+                //double chefk afterlol
+                exit(EXIT_FAILURE);    
+        }
+    }
+
+    //haven't done option for Any yet
+    printf("Filter settings:\n");
+    printf("Source IP: %s\n", filter.source_ip ? filter.source_ip : "Any");
+    printf("Destination IP: %s\n", filter.dest_ip ? filter.dest_ip : "Any");
+    printf("Source Port: %u\n", filter.source_port ? filter.source_port : 0);
+    printf("Destination Port: %u\n", filter.dest_port ? filter.dest_port : 0);
+    printf("Source Interface: %s\n", filter.source_ifname ? filter.source_ifname : "Any");
+    printf("Destination Interface: %s\n", filter.dest_ifname ? filter.dest_ifname : "Any");
+    printf("Transfer Protocol: %s\n", filter.transfer_protocol == IPPROTO_TCP ? "TCP" : filter.transfer_protocol == IPPROTO_UDP ? "UDP" : "Any");
+    printf("Log File: %s\n", log[0] ? log : "None");
+    if(strlen(log) == 0){
+        log = "sniff_log.txt";
+    }
+    log_file = fopen(log, "w"); //open log file, w write
+    if(!log_file){
+        exit_with_error("Failed to open log file");
+    }
+
+    //getting mac address for given if
+
+
 }
 
 

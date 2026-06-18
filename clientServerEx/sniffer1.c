@@ -71,10 +71,38 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     close(fd);
     
     if(strcmp(if_type, "source") == 0){
+        //strcpy might not be right
         strcpy(filter->source_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data); //copying mac addr
     }
     else{
         strcpy(filter->dest_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data);
+    }
+}
+
+bool cmpmac(uint8_t *mac1, uint8_t *mac2){
+    for(int i = 0; i < 6; i++){
+        if(mac1[i] != mac2[i]){
+            return false;
+        }
+    }
+    return true;
+}
+
+void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
+    int ip_header_len;
+    //raw packet data order, hdr = header
+    //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
+    //All countain information on what layer above its' protocol is, ie) eth knows network layer's protocol (ip)
+    
+    struct ethhdr *eth = (struct ethhdr *)buffer; //typecast buffer to parse eth header
+
+    if(ntohs(eth->h_proto) != ETH_P_IP){ //checks if IP protocol (IPv4)
+        return; 
+    }
+
+    //why check ifname not mac for NULL?
+    if(filter->source_ifname != NULL && cmpmac(filter->source_mac, eth->h_source) !=0){
+        
     }
 }
 
@@ -173,8 +201,24 @@ int main(int argc, char *argv[]){
     }
 
     //getting mac address for given if
+    if(filter.source_ifname && !filter.dest_ifname){
+        get_mac(filter.source_ifname, &filter, "source");
+        get_mac(filter.dest_ifname, &filter, "dest");
+    }
 
-
+    /* struct sockaddr saddr; 
+    int sockfd, saddr_len, buf_len; */
+    //MAIN LOOOP
+    while(1){ //do i need -1?
+        saddr_len = sizeof(saddr);
+        buf_len = recvfrom(sockfd, buffer, 65536-1, 0, &saddr, saddr_len);
+        if(buf_len < 0){
+            exit_with_error("Failed to receive packets");
+        }
+        process_packet(buffer, buf_len, &filter, log_file);
+        fflush(log_file);
+    }
+    
 }
 
 

@@ -1,3 +1,10 @@
+//#define _GNU_SOURCE
+// I added the define to the configs
+//feature-test macro or smth, makes net/if.h and strlcpy etc work bc thier headers are configured differently
+//Alt:
+//Change: C/C++ Edit Configurations to add -D_GNU_SOURCE to compiler flags
+//Or, change the configs to -std=gnu23
+
 //sniff sniff
 #include <stdio.h>
 #include <stdlib.h>//malloc
@@ -56,18 +63,22 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
         exit_with_error("socket creation failed for ioctl");
     }
     strlcpy(ifr.ifr_name, ifname, IFNAMSIZ); //copy interface name to ifreq w/size constraint 
+    
     if(ioctl(fd, SIOCGIFHWADDR, &ifr) < 0){
         close(fd);
         exit_with_error("ioctl failed to get mac address");
     }
     close(fd);
+    
     if(strcmp(if_type, "source") == 0){
         strcpy(filter->source_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data); //copying mac addr
+    }
+    else{
+        strcpy(filter->dest_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data);
     }
 }
 
 int main(int argc, char *argv[]){
-    int c;
     char log[225]; //log message, 225 is max size, taken as input from user
     FILE *log_file = NULL; //file pointer for log file, std I/O setup
     
@@ -77,7 +88,7 @@ int main(int argc, char *argv[]){
     int sockfd, saddr_len, buf_len;
 
     uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet
-    memest(buffer, 0, 65536); //zero out buffer
+    memset(buffer, 0, 65536); //zero out buffer
 
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL)); //family packet, type raw, have to use ETH_P_ALL bc it will not give u IP packets going out otherwise
     //sits below IP layer, not necessarily actually ethernet just in that format, wifi gets changed to it too - its just an old name
@@ -90,13 +101,13 @@ int main(int argc, char *argv[]){
         //getopt to parse comd line args
         // so --sip and -s both work
         static struct option long_options[] = {
-            {"sip", required_argument, NULL, 's'}; //source ip
-            {"dip", required_argument, NULL, 'd'}; //dest ip
-            {"sport", required_argument, NULL, 'p'}; //source port
-            {"dport", required_argument, NULL, 'q'}; //dest port
-            {"sif", required_argument, NULL, 'i'}; //source interface
-            {"dif", required_argument, NULL, 'j'}; //dest interface
-            {"logfile", required_argument, NULL, 'f'}; //log file name
+            {"sip", required_argument, NULL, 's'}, //source ip
+            {"dip", required_argument, NULL, 'd'}, //dest ip
+            {"sport", required_argument, NULL, 'p'}, //source port
+            {"dport", required_argument, NULL, 'q'}, //dest port
+            {"sif", required_argument, NULL, 'i'}, //source interface
+            {"dif", required_argument, NULL, 'j'}, //dest interface
+            {"logfile", required_argument, NULL, 'f'}, //log file name
             {"tcp", no_argument, NULL, 't'},
             {"udp", no_argument, NULL, 'u'},
             {0, 0, 0, 0} //end of options
@@ -127,7 +138,7 @@ int main(int argc, char *argv[]){
                 filter.dest_ifname = optarg;
                 break;
             case 'f': //logfile
-                strcpy(log, optarg, sizeof log -1); //copy log file name to var
+                strlcpy(log, optarg, sizeof(log)); //copy log file name to var
                 //can change to char* or i gotta do bound checks 
                 break;
             case 't': //tcp
@@ -154,7 +165,7 @@ int main(int argc, char *argv[]){
     printf("Transfer Protocol: %s\n", filter.transfer_protocol == IPPROTO_TCP ? "TCP" : filter.transfer_protocol == IPPROTO_UDP ? "UDP" : "Any");
     printf("Log File: %s\n", log[0] ? log : "None");
     if(strlen(log) == 0){
-        log = "sniff_log.txt";
+        strcpy(log, "sniff_log.txt");
     }
     log_file = fopen(log, "w"); //open log file, w write
     if(!log_file){

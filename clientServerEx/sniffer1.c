@@ -5,7 +5,7 @@
 //Change: C/C++ Edit Configurations to add -D_GNU_SOURCE to compiler flags
 //Or, change the configs to -std=gnu23
 
-//sniff sniff
+//sniff sniff - add security stuff later before testing
 #include <stdio.h>
 #include <stdlib.h>//malloc
 
@@ -54,6 +54,7 @@ typedef struct{
 } packet_filter_t;
 
 struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses, if want can add ipv6 later
+    //used in process_paccket
 
 void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     int fd;
@@ -89,21 +90,38 @@ bool cmpmac(uint8_t *mac1, uint8_t *mac2){
 }
 
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
-    int ip_header_len;
     //raw packet data order, hdr = header
     //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
     //All countain information on what layer above its' protocol is, ie) eth knows network layer's protocol (ip)
     
+    //extract eth header
     struct ethhdr *eth = (struct ethhdr *)buffer; //typecast buffer to parse eth header
 
     if(ntohs(eth->h_proto) != ETH_P_IP){ //checks if IP protocol (IPv4)
         return; 
     }
-
-    //why check ifname not mac for NULL?
-    if(filter->source_ifname != NULL && cmpmac(filter->source_mac, eth->h_source) !=0){
-        
+    if(filter->source_ifname != NULL && cmpmac(filter->source_mac, eth->h_source) == false){
+        return;
     }
+    if(filter->dest_ifname != NULL && cmpmac(filter->dest_mac, eth->h_dest) == false){
+        return;
+    }
+
+    //extract ip header
+    struct iphdr *ip = (struct iphdr *)(buffer + sizeof(struct ethhdr));
+    //iphdr has variable options, makes getting size difficult
+    int ip_header_len = ip->ihl*4; //ihl is internet header length in 32 bit words, convert to bytes
+
+    memset(&source_addr, 0, sizeof(source_addr)); //zeroing out/resetting
+    memset(&dest_addr, 0, sizeof(dest_addr));
+
+    //sin_addr is network byte order, saddr and daddr in ip header are also network byte order
+    //given that they are from buffer which is from the netework
+    source_addr.sin_addr.s_addr = ip->saddr; //store as source id in source_addr ip from ip header (saddr)
+    dest_addr.sin_addr.s_addr = ip->daddr; 
+
+    //ip filter
+    
 }
 
 int main(int argc, char *argv[]){

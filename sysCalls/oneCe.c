@@ -16,7 +16,7 @@ struct sockaddr {
 struct sockaddr_in {
     short int          sin_family;  // Address family, AF_INET
     unsigned short int sin_port;    // Port number
-    struct in_addr     sin_addr;    // Internet address
+    struct in_addr     sin_addr;    // Internet address, the struct just stores the 32bit IPv4 internet address
     unsigned char      sin_zero[8]; // Same size as struct sockaddr
 };
 int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP

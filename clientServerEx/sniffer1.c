@@ -89,6 +89,19 @@ bool cmpmac(uint8_t *mac1, uint8_t *mac2){
     return true;
 }
 
+bool filtering_IP(packet_filter_t *filter, struct iphdr *ip){
+    //have to convert here - wait depends on user input into filter no?
+    //wait let me check their types if they strings
+
+    if(filter->source_ip != NULL && strcmp(filter->source_ip, ip->saddr) != 0){
+        return false;
+    }
+    if(filter->dest_ip != NULL && strcmp(filter->dest_ip, ip->daddr) != 0){
+        return false;
+    }
+    return true;
+}
+
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
     //raw packet data order, hdr = header
     //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
@@ -121,7 +134,7 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     dest_addr.sin_addr.s_addr = ip->daddr; 
 
     //ip filter
-    
+
 }
 
 int main(int argc, char *argv[]){

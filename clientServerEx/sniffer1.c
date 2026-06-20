@@ -121,16 +121,40 @@ void logeth(struct ethhdr *eth, FILE *log_file){
     fprintf(log_file, "\tDestination MAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
     fprintf(log_file, "\tProtocol: %d\n", ntohs(eth->h_proto));
 }
-void logip(struct iphdr *ip, FILE *log_file){
+void logip(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of iphdr mostly - can edit later
     fprintf(log_file, "IP Header:\n");
-    fprintf(log_file, "\tVersion: %d\n", ip->version);
-    fprintf(log_file, "\tHeader Length: %d bytes\n", ip->ihl*4);
-    fprintf(log_file, "\tType of Service: ");
-
+    fprintf(log_file, "\tVersion: %d\n", (uint32_t)ip->version); //4 or 6, IPv
+    fprintf(log_file, "\tHeader Length: %d bytes\n", (uint32_t)ip->ihl*4); //dcsp ecn smth
+    fprintf(log_file, "\tType of Service: %d\n", (uint32_t)ip->tos); //why convert
+    fprintf(log_file, "\tTotal Length: %d bytes\n", ntohs(ip->tot_len)); //
+    fprintf(log_file, "\tIdentification: %d\n", (uint32_t)(ip->id)); //id for fragementaiton, if a packet is split into multiple bc too big
+    fprintf(log_file, "\tTime to Live: %d\n", (uint32_t)ip->ttl); //packets only be forwarded a certain amt of times before expires
     fprintf(log_file, "\tSource IP: %s\n", inet_ntoa(source_addr.sin_addr));
     fprintf(log_file, "\tDestination IP: %s\n", inet_ntoa(dest_addr.sin_addr));
-    fprintf(log_file, "\tProtocol: %d\n", ip->protocol);
-    //30hrs a week which is still kidn of weak will be hard with mideterms yk
+    fprintf(log_file, "\tProtocol: %d\n", (uint32_t)ip->protocol);
+    fprintf(log_file, "\tChecksum: %d\n", ntohs(ip->check)); //This is the security thingy to detect corruption of header
+    //frag offset too - todo with flags etc
+}
+
+void logTCP(struct tcphdr *tcp, FILE *log_file){
+    fprintf(log_file, "TCP Header:\n");
+    fprintf(log_file, "\tSource Port: %d\n", ntohs(tcp->source));
+    fprintf(log_file, "\tDestination Port: %d\n", ntohs(tcp->dest));
+    fprintf(log_file, "\tSequence Number: %u\n", ntohl(tcp->seq));
+    fprintf(log_file, "\tAcknowledgment Number: %u\n", ntohl(tcp->ack_seq));
+    fprintf(log_file, "\tData Offset: %d bytes\n", (uint32_t)tcp->doff*4);
+    fprintf(log_file, "\tFlags: %d\n", (uint32_t)tcp->th_flags);
+    fprintf(log_file, "\tWindow Size: %d\n", ntohs(tcp->window));
+    fprintf(log_file, "\tChecksum: %d\n", ntohs(tcp->check));
+    fprintf(log_file, "\tUrgent Pointer: %d\n", ntohs(tcp->urg_ptr));
+}
+
+void logUDP(struct udphdr *udp, FILE *log_file){
+    fprintf(log_file, "UDP Header:\n");
+    fprintf(log_file, "\tSource Port: %d\n", ntohs(udp->source));
+    fprintf(log_file, "\tDestination Port: %d\n", ntohs(udp->dest));
+    fprintf(log_file, "\tLength: %d bytes\n", ntohs(udp->len));
+    fprintf(log_file, "\tChecksum: %d\n", ntohs(udp->check));
 }
 
 //change to return smth later if i want to log more info

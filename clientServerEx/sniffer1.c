@@ -57,6 +57,8 @@ struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses, if want can 
     //used in process_paccket
 
 void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
+    //get mac address from interface name
+
     int fd;
     struct ifreq ifr; //interface request struct for ioctl given interface name return oen field
     fd = socket(AF_INET, SOCK_DGRAM, 0); //need a fd for ioctl
@@ -73,7 +75,7 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     
     if(strcmp(if_type, "source") == 0){
         //strcpy might not be right
-        strcpy(filter->source_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data); //copying mac addr
+        strcpy(filter->source_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data); //copying mac addr (hwaddr = hardware addr = mac)
     }
     else{
         strcpy(filter->dest_mac, (uint8_t*)ifr.ifr_hwaddr.sa_data);
@@ -89,19 +91,49 @@ bool cmpmac(uint8_t *mac1, uint8_t *mac2){
     return true;
 }
 
-bool filtering_IP(packet_filter_t *filter, struct iphdr *ip){
-    //have to convert here - wait depends on user input into filter no?
-    //wait let me check their types if they strings
-
-    if(filter->source_ip != NULL && strcmp(filter->source_ip, ip->saddr) != 0){
+bool filtering_IP(packet_filter_t *filter){
+    //inet_ntoa converts bytes to decimal dot ie) what we view when seeing ip addr
+    //can't use ip.saddr as it's raw bytes not wrapped by struct sin_addr which is what inet_ntoa takes
+    if(filter->source_ip != NULL && strcmp(filter->source_ip, inet_ntoa(source_addr.sin_addr)) != 0){
+        //source_addr.sin_addr, converts internet host address
+        //my machine stores ip as network order too as it's in struct sockaddr_in
         return false;
     }
-    if(filter->dest_ip != NULL && strcmp(filter->dest_ip, ip->daddr) != 0){
+    if(filter->dest_ip != NULL && strcmp(filter->dest_ip, inet_ntoa(dest_addr.sin_addr)) != 0){
         return false;
     }
     return true;
 }
 
+bool filtering_port(packet_filter_t *filter, uint16_t source_port, uint16_t dest_port){
+    if(filter->source_port != 0 && filter->source_port != source_port){
+        return false; 
+    }
+    if(filter->dest_port != 0 && filter->dest_port != dest_port){
+        return false;
+    }
+    return true;
+}
+
+void logeth(struct ethhdr *eth, FILE *log_file){
+    fprintf(log_file, "Ethernet Header:\n");
+    fprintf(log_file, "\tSource MAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+    fprintf(log_file, "\tDestination MAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+    fprintf(log_file, "\tProtocol: %d\n", ntohs(eth->h_proto));
+}
+void logip(struct iphdr *ip, FILE *log_file){
+    fprintf(log_file, "IP Header:\n");
+    fprintf(log_file, "\tVersion: %d\n", ip->version);
+    fprintf(log_file, "\tHeader Length: %d bytes\n", ip->ihl*4);
+    fprintf(log_file, "\tType of Service: ");
+
+    fprintf(log_file, "\tSource IP: %s\n", inet_ntoa(source_addr.sin_addr));
+    fprintf(log_file, "\tDestination IP: %s\n", inet_ntoa(dest_addr.sin_addr));
+    fprintf(log_file, "\tProtocol: %d\n", ip->protocol);
+    //30hrs a week which is still kidn of weak will be hard with mideterms yk
+}
+
+//change to return smth later if i want to log more info
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
     //raw packet data order, hdr = header
     //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
@@ -134,6 +166,39 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     dest_addr.sin_addr.s_addr = ip->daddr; 
 
     //ip filter
+    if(filtering_IP(filter) == false){
+        return;
+    }
+
+    //protocol - tcp udp
+    if(filter->transfer_protocol != 0 && ip->protocol != filter->transfer_protocol){
+        return;
+    }
+    struct tcphdr *tcp;
+    struct udphdr *udp;
+    if(ip->protocol == IPPROTO_TCP){ //how to check if it is tcp
+        tcp = (struct tcphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
+        //ntohl or s, wait so when i get port from my machine it gives host?
+        if(filtering_port(filter, ntohs(tcp->source), ntohs(tcp->dest)) == false){
+            return;
+        }
+        
+        if(filter->transfer_protocol == IPPROTO_TCP){
+
+        }
+    }
+    else if(ip->protocol == IPPROTO_UDP){
+        udp = (struct udphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
+        if(filtering_port(filter, ntohs(tcp->source), ntohs(tcp->dest)) == false){
+            return;
+        }
+        if(filter->transfer_protocol == IPPROTO_UDP){
+
+        }
+    }
+    else{
+        return;
+    }
 
 }
 
@@ -213,7 +278,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    //haven't done option for Any yet
+    //haven't done option for Any yet - functionality is NOT there yet
     printf("Filter settings:\n");
     printf("Source IP: %s\n", filter.source_ip ? filter.source_ip : "Any");
     printf("Destination IP: %s\n", filter.dest_ip ? filter.dest_ip : "Any");
@@ -232,7 +297,7 @@ int main(int argc, char *argv[]){
     }
 
     //getting mac address for given if
-    if(filter.source_ifname && !filter.dest_ifname){
+    if(filter.source_ifname && filter.dest_ifname){
         get_mac(filter.source_ifname, &filter, "source");
         get_mac(filter.dest_ifname, &filter, "dest");
     }

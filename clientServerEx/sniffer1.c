@@ -115,13 +115,13 @@ bool filtering_port(packet_filter_t *filter, uint16_t source_port, uint16_t dest
     return true;
 }
 
-void logeth(struct ethhdr *eth, FILE *log_file){
+void logETH(struct ethhdr *eth, FILE *log_file){
     fprintf(log_file, "Ethernet Header:\n");
     fprintf(log_file, "\tSource MAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
     fprintf(log_file, "\tDestination MAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
     fprintf(log_file, "\tProtocol: %d\n", ntohs(eth->h_proto));
 }
-void logip(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of iphdr mostly - can edit later
+void logIP(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of iphdr mostly - can edit later
     fprintf(log_file, "IP Header:\n");
     fprintf(log_file, "\tVersion: %d\n", (uint32_t)ip->version); //4 or 6, IPv
     fprintf(log_file, "\tHeader Length: %d bytes\n", (uint32_t)ip->ihl*4); //dcsp ecn smth
@@ -136,26 +136,49 @@ void logip(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of
     //frag offset too - todo with flags etc
 }
 
-void logTCP(struct tcphdr *tcp, FILE *log_file){
-    fprintf(log_file, "TCP Header:\n");
-    fprintf(log_file, "\tSource Port: %d\n", ntohs(tcp->source));
-    fprintf(log_file, "\tDestination Port: %d\n", ntohs(tcp->dest));
-    fprintf(log_file, "\tSequence Number: %u\n", ntohl(tcp->seq));
-    fprintf(log_file, "\tAcknowledgment Number: %u\n", ntohl(tcp->ack_seq));
-    fprintf(log_file, "\tData Offset: %d bytes\n", (uint32_t)tcp->doff*4);
-    fprintf(log_file, "\tFlags: %d\n", (uint32_t)tcp->th_flags);
-    fprintf(log_file, "\tWindow Size: %d\n", ntohs(tcp->window));
-    fprintf(log_file, "\tChecksum: %d\n", ntohs(tcp->check));
-    fprintf(log_file, "\tUrgent Pointer: %d\n", ntohs(tcp->urg_ptr));
+void logTCP(struct tcphdr *tcp, FILE *log_file){ //buncha flags - should go over them & 3 way handshake etc
+    fprintf(log_file, "\nTCP Header\n");
+    fprintf(log_file, "\t-Source Port : %d\n", ntohs(tcp->source));
+    fprintf(log_file, "\t-Destination Port : %u\n", ntohs(tcp->dest));
+    fprintf(log_file, "\t-Sequence Number : %u\n", ntohl(tcp->seq));
+    fprintf(log_file, "\t-Acknowledgement Number : %u\n", ntohl(tcp->ack_seq));
+    fprintf(log_file, "\t-Header Length (Bytes) : %d\n", (uint32_t)tcp->doff*4); //doff: number of (32bit) in hdr, variable bc options
+    fprintf(log_file, "\t ------- Flags -------\n");
+    fprintf(log_file, "\t-Urgent Flag : %d\n", (uint32_t)tcp->urg);
+    fprintf(log_file, "\t-Acknowledgement Flag : %d\n", (uint32_t)tcp->ack);
+    fprintf(log_file, "\t-Push Flag : %d\n", (uint32_t)tcp->psh);
+    fprintf(log_file, "\t-Reset Flag : %d\n", (uint32_t)tcp->rst);
+    fprintf(log_file, "\t-Synchronise Flag : %d\n", (uint32_t)tcp->syn);
+    fprintf(log_file, "\t-Finish Flag : %d\n", (uint32_t)tcp->fin);
+    fprintf(log_file, "\t-Window Size : %d\n", ntohs(tcp->window)); //flow ctrl, how many bytes sender willing to recieve to not overwhelm
+    fprintf(log_file, "\t-Checksum : %d\n", ntohs(tcp->check));
+    fprintf(log_file, "\t-Urgent pointer : %d\n", noths(tcp->urg_ptr));
 }
 
-void logUDP(struct udphdr *udp, FILE *log_file){
+void logUDP(struct udphdr *udp, FILE *log_file){ //buncha flags, less cuz it's just send
     fprintf(log_file, "UDP Header:\n");
     fprintf(log_file, "\tSource Port: %d\n", ntohs(udp->source));
     fprintf(log_file, "\tDestination Port: %d\n", ntohs(udp->dest));
     fprintf(log_file, "\tLength: %d bytes\n", ntohs(udp->len));
-    fprintf(log_file, "\tChecksum: %d\n", ntohs(udp->check));
+    fprintf(log_file, "\tChecksum: %d\n", ntohs(udp->check)); //sometimes set to 0, skipped they dont use it lol
 }
+
+void logpayload(uint8_t *buffer, int buf_len, int iphdrlen, uint8_t t_protocol, FILE *log_file, struct tcphdr *tcp){
+    uint32_t proto_hdr_len = sizeof(struct udphdr);
+    if(t_protocol == IPPROTO_TCP){
+        proto_hdr_len = (uint32_t)tcp->doff*4;
+    }
+    uint8_t *payload = buffer + sizeof(struct ethhdr) + iphdrlen + proto_hdr_len;
+    int payload_len = buf_len - (sizeof(struct ethhdr) + iphdrlen + proto_hdr_len);
+    fprintf(log_file, "Payload (%d bytes):\n", payload_len);
+    for(int i = 0; i < payload_len; i++){
+        if(i!=0 && i%16 == 0){
+            fprintf(log_file, "\n");
+        }
+        fprintf(log_file, "%02X ", payload[i]);
+    }
+}
+
 
 //change to return smth later if i want to log more info
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
@@ -207,22 +230,28 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
             return;
         }
         
-        if(filter->transfer_protocol == IPPROTO_TCP){
-
-        }
+        if(filter->transfer_protocol == IPPROTO_TCP){}
     }
     else if(ip->protocol == IPPROTO_UDP){
         udp = (struct udphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
         if(filtering_port(filter, ntohs(tcp->source), ntohs(tcp->dest)) == false){
             return;
         }
-        if(filter->transfer_protocol == IPPROTO_UDP){
-
-        }
+        if(filter->transfer_protocol == IPPROTO_UDP){}
     }
     else{
         return;
     }
+
+    logETH(eth, log_file);
+    logIP(ip, log_file);
+    if(ip->protocol == IPPROTO_TCP && tcp != NULL){
+        logTCP(tcp, log_file);
+    }
+    else if(ip->protocol == IPPROTO_UDP && udp != NULL){
+        logUDP(udp, log_file);
+    }
+    logpayload(buffer, buf_len, ip_header_len, filter->transfer_protocol, log_file, tcp);
 
 }
 
@@ -235,7 +264,7 @@ int main(int argc, char *argv[]){
     struct sockaddr saddr; //pass to recieve from
     int sockfd, saddr_len, buf_len;
 
-    uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet
+    uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet - by bytesn(uint8_t)
     memset(buffer, 0, 65536); //zero out buffer
 
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL)); //family packet, type raw, have to use ETH_P_ALL bc it will not give u IP packets going out otherwise

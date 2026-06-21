@@ -4,11 +4,16 @@
 //Alt:
 //Change: C/C++ Edit Configurations to add -D_GNU_SOURCE to compiler flags
 //Or, change the configs to -std=gnu23
-//gcc sniffer1.c -o sniffer1 -D_GNU_SOURCE -Wall -Wextra
+//use -lcap to link with libcap for capabilities 
+//gcc sniffer1.c -o sniffer1 -D_GNU_SOURCE -Wall -Wextra -lcap  
+//sudo setcap cap_net_raw+p ./sniffer
 
 //sniff sniff - add security stuff later before testing
 #include <stdio.h>
 #include <stdlib.h>//malloc
+
+#include <sys/capability.h> //for capabilities
+//sudo apt install libcap-dev
 
 #include <unistd.h> 
 #include <getopt.h> //gives optarg for getopt(linux, the ^ otherwise i think)
@@ -55,11 +60,28 @@ typedef struct{
 } packet_filter_t;
 
 struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses, if want can add ipv6 later
-    //used in process_paccket
+//used in process_paccket
+
+static int capnetraw_onoff(cap_flag_value_t val){
+    cap_t caps = cap_get_proc(); //copies processes current capability returning in cap_t
+    if(caps == NULL){
+        exit_with_error("Failed to get process capabilities");
+    }
+    cap_value_t lookingfor = CAP_NET_RAW;
+    if(cap_set_flag(caps, CAP_EFFECTIVE, 1, &lookingfor, val) == -1){ 
+        //edits buffer in memory, CAP_EFFECTIVE means set effective flag for the 1 capability listed in the array
+        //set flag to val, where val is CAP_SET or CAP_CLEAR (on or off)
+        cap_free(caps);
+        exit_with_error("Failed to set capability flag");
+    }
+    int rc = cap_set_proc(caps); //writes buffer into kernel - change becomes real
+    cap_free(caps); //releases memory allocateed for buffer
+    return rc;
+}
+
 
 void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     //get mac address from interface name
-
     int fd;
     struct ifreq ifr; //interface request struct for ioctl given interface name return oen field
     fd = socket(AF_INET, SOCK_DGRAM, 0); //need a fd for ioctl
@@ -68,7 +90,7 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     }
     strlcpy(ifr.ifr_name, ifname, IFNAMSIZ); //copy interface name to ifreq w/size constraint 
     
-    if(ioctl(fd, SIOCGIFHWADDR, &ifr) < 0){
+    if(ioctl(fd, SIOCGIFHWADDR, &ifr) < 0){ //io control, SIOCGIFHWADDR fills hwaddr
         close(fd);
         exit_with_error("ioctl failed to get mac address");
     }
@@ -78,7 +100,7 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
         memcpy(filter->source_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN); //6 bytes cpy, (hwaddr = hardware addr = mac)
     }
     else{
-        memcpy(filter->source_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+        memcpy(filter->dest_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
     }
 }
 
@@ -127,7 +149,7 @@ void logIP(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of
     fprintf(log_file, "\tHeader Length: %d bytes\n", (uint32_t)ip->ihl*4); //dcsp ecn smth
     fprintf(log_file, "\tType of Service: %d\n", (uint32_t)ip->tos); //why convert
     fprintf(log_file, "\tTotal Length: %d bytes\n", ntohs(ip->tot_len)); //
-    fprintf(log_file, "\tIdentification: %d\n", (uint32_t)(ip->id)); //id for fragementaiton, if a packet is split into multiple bc too big
+    fprintf(log_file, "\tIdentification: %d\n", (uint32_t)(ntohs(ip->id))); //id for fragementaiton, if a packet is split into multiple bc too big
     fprintf(log_file, "\tTime to Live: %d\n", (uint32_t)ip->ttl); //packets only be forwarded a certain amt of times before expires
     fprintf(log_file, "\tSource IP: %s\n", inet_ntoa(source_addr.sin_addr));
     fprintf(log_file, "\tDestination IP: %s\n", inet_ntoa(dest_addr.sin_addr));
@@ -221,15 +243,17 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     if(filter->transfer_protocol != 0 && ip->protocol != filter->transfer_protocol){
         return;
     }
-    struct tcphdr *tcp;
-    struct udphdr *udp;
+    struct tcphdr *tcp = NULL;
+    struct udphdr *udp = NULL;
+    if(filter->transfer_protocol == IPPROTO_UDP && ip->protocol!=IPPROTO_UDP){ return; }
+    if(filter->transfer_protocol == IPPROTO_TCP && ip->protocol!=IPPROTO_TCP){ return; }
+
     if(ip->protocol == IPPROTO_TCP){ //how to check if it is tcp
         tcp = (struct tcphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
         //ntohl or s, wait so when i get port from my machine it gives host?
         if(filtering_port(filter, ntohs(tcp->source), ntohs(tcp->dest)) == false){
             return;
         }
-        
         if(filter->transfer_protocol == IPPROTO_TCP){}
     }
     else if(ip->protocol == IPPROTO_UDP){
@@ -237,7 +261,6 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
         if(filtering_port(filter, ntohs(udp->source), ntohs(udp->dest)) == false){
             return;
         }
-        if(filter->transfer_protocol == IPPROTO_UDP){}
     }
     else{
         return;
@@ -251,12 +274,12 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     else if(ip->protocol == IPPROTO_UDP && udp != NULL){
         logUDP(udp, log_file);
     }
-    logpayload(buffer, buf_len, ip_header_len, filter->transfer_protocol, log_file, tcp);
+    logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);
 
 }
 
 int main(int argc, char *argv[]){
-    char log[225]; //log message, 225 is max size, taken as input from user
+    char log[225] = {0}; //log message, 225 is max size, taken as input from user
     FILE *log_file = NULL; //file pointer for log file, std I/O setup
     
     packet_filter_t filter = {0, NULL, NULL, 0, 0, NULL, NULL, {0}, {0}}; //initialize default
@@ -267,8 +290,14 @@ int main(int argc, char *argv[]){
     uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet - by bytesn(uint8_t)
     memset(buffer, 0, 65536); //zero out buffer
 
+    capnetraw_onoff(CAP_SET); //enable CAP_NET_RAW
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL)); //family packet, type raw, have to use ETH_P_ALL bc it will not give u IP packets going out otherwise
     //sits below IP layer, not necessarily actually ethernet just in that format, wifi gets changed to it too - its just an old name
+    cap_t caps = cap_get_proc();
+    cap_clear(caps);
+    cap_set_proc(caps);
+    cap_free(caps);
+    
     if(sockfd < 0){
         exit_with_error("socket creation failed raw socket at packet layer aka packet socket");
     }
@@ -289,8 +318,9 @@ int main(int argc, char *argv[]){
             {"udp", no_argument, NULL, 'u'},
             {0, 0, 0, 0} //end of options
         };
-        c = getopt_long(argc, argv, "s:d:p:q:i:j:l:tu", long_options, NULL); 
+        c = getopt_long(argc, argv, "s:d:p:q:i:j:f:tu", long_options, NULL); 
         //: means required argument, :: means optional, none means no args
+        //required arg just means, if flag given, must have arg after it
 
         if(c == -1){
             break;
@@ -306,14 +336,14 @@ int main(int argc, char *argv[]){
                 filter.source_port = atoi(optarg); //from getopt, string to int atoi ofc
                 break;
             case 'q': //dport
-                filter.source_port = atoi(optarg);
+                filter.dest_port = atoi(optarg);
                 break;
             case 'i': //sif
                 filter.source_ifname = optarg;
                 break;
             case 'j': //dif
                 filter.dest_ifname = optarg;
-                break;
+                break; 
             case 'f': //logfile
                 strlcpy(log, optarg, sizeof(log)); //copy log file name to var
                 //can change to char* or i gotta do bound checks 
@@ -350,8 +380,10 @@ int main(int argc, char *argv[]){
     }
 
     //getting mac address for given if
-    if(filter.source_ifname && filter.dest_ifname){
+    if(filter.source_ifname){
         get_mac(filter.source_ifname, &filter, "source");
+    }
+    if(filter.dest_ifname){
         get_mac(filter.dest_ifname, &filter, "dest");
     }
 

@@ -261,7 +261,7 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     if(filter->transfer_protocol == IPPROTO_TCP && ip->protocol!=IPPROTO_TCP){ return; }
 
     if(ip->protocol == IPPROTO_TCP){ //how to check if it is tcp
-        if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len + sizeof(struct tcphdr)){ return; }
+        if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len + (int)sizeof(struct tcphdr)){ return; }
         tcp = (struct tcphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
         //ntohl or s, wait so when i get port from my machine it gives host?
         if(tcp->doff*4 < (int)sizeof(struct tcphdr)){ return; }

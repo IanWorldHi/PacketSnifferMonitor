@@ -1,3 +1,6 @@
+//largely very much teh same thing
+//from: https://www.binarytides.com/packet-sniffer-code-in-c-using-linux-sockets-bsd-part-2/#comments
+
 #include<netinet/in.h>
 #include<errno.h>
 #include<netdb.h>

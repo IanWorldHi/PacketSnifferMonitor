@@ -6,12 +6,20 @@
 //Or, change the configs to -std=gnu23
 //use -lcap to link with libcap for capabilities 
 //gcc sniffer1.c -o sniffer1 -D_GNU_SOURCE -Wall -Wextra -lcap  
-//sudo setcap cap_net_raw+p ./sniffer
+//sudo setcap cap_net_raw+p ./sniffer1 
+//./sniffer1 -f sniff.log
+//tail -f sniff.log
+//less sniff.log
+
+//curl
+//whois
+//dig 
 
 //sniff sniff - add security stuff later before testing
 #include <stdio.h>
 #include <stdlib.h>//malloc
 
+#include <signal.h> //signal handling
 #include <sys/capability.h> //for capabilities
 //sudo apt install libcap-dev
 
@@ -61,6 +69,13 @@ typedef struct{
 
 struct sockaddr_in source_addr, dest_addr; //ipv4 socket addresses, if want can add ipv6 later
 //used in process_paccket
+
+static volatile sig_atomic_t stop = 0;
+//voltaile means reread from memory every loop, sig_atomic_t gaurantees it's read without being interrupted by signal
+void signalHandler(int sig){
+    (void)sig; 
+    stop = 1;
+}
 
 static int capnetraw_onoff(cap_flag_value_t val){
     cap_t caps = cap_get_proc(); //copies processes current capability returning in cap_t
@@ -199,6 +214,8 @@ void logpayload(uint8_t *buffer, int buf_len, int iphdrlen, uint8_t t_protocol, 
     }
     uint8_t *payload = buffer + sizeof(struct ethhdr) + iphdrlen + proto_hdr_len;
     int payload_len = buf_len - (sizeof(struct ethhdr) + iphdrlen + proto_hdr_len);
+    //can have 0 bytes bc of min size of ethhdr slight inaccuracy to fix
+
     fprintf(log_file, "Payload (%d bytes):\n", payload_len);
     for(int i = 0; i < payload_len; i++){
         if(i!=0 && i%16 == 0){
@@ -294,6 +311,15 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
 }
 
 int main(int argc, char *argv[]){
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa)); //zero out
+    sa.sa_handler = &signalHandler;
+    sa.sa_flags = 0; //not SA_RESTART  
+    sigemptyset(&sa.sa_mask); //default blocking behaviour
+    sigaction(SIGINT, &sa, NULL); //third is for old sigaction so u can restore old handler if want
+    sigaction(SIGTERM, &sa, NULL);
+    //same functionality: signal(SIGINT, signalHandler); - not recommended for portability see man page
+    
     char log[225] = {0}; //log message, 225 is max size, taken as input from user
     FILE *log_file = NULL; //file pointer for log file, std I/O setup
     
@@ -417,16 +443,25 @@ int main(int argc, char *argv[]){
     /* struct sockaddr saddr; 
     int sockfd, saddr_len, buf_len; */
     //MAIN LOOOP
-    while(1){ //do i need -1?
+    int n = 0;
+    while(!stop){ 
         saddr_len = sizeof(saddr);
         buf_len = recvfrom(sockfd, buffer, 65536-1, 0, &saddr, (socklen_t*) &saddr_len);
         if(buf_len < 0){
+            if(errno == EINTR){ //interrupted by signal, break
+                break;
+            }
             exit_with_error("Failed to receive packets");
         }
         process_packet(buffer, buf_len, &filter, log_file);
         fflush(log_file);
+        n++;
     }
-    
+    fclose(log_file);
+    free(buffer);
+    close(sockfd);
+    printf("Exiting nice, num of packets read %d\n", n);
+    return 0;
 }
 
 

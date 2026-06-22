@@ -75,6 +75,10 @@ static int capnetraw_onoff(cap_flag_value_t val){
         exit_with_error("Failed to set capability flag");
     }
     int rc = cap_set_proc(caps); //writes buffer into kernel - change becomes real
+    if(rc == -1){
+        cap_free(caps);
+        exit_with_error("Failed to set process capabilities");
+    }
     cap_free(caps); //releases memory allocateed for buffer
     return rc;
 }
@@ -84,12 +88,15 @@ void get_mac(char *ifname, packet_filter_t *filter, char *if_type){
     //get mac address from interface name
     int fd;
     struct ifreq ifr; //interface request struct for ioctl given interface name return oen field
+    memset(&ifr, 0, sizeof(ifr));
     fd = socket(AF_INET, SOCK_DGRAM, 0); //need a fd for ioctl
     if(fd < 0){
         exit_with_error("socket creation failed for ioctl");
     }
-    strlcpy(ifr.ifr_name, ifname, IFNAMSIZ); //copy interface name to ifreq w/size constraint 
-    
+    if(strlcpy(ifr.ifr_name, ifname, IFNAMSIZ) >= sizeof(ifr.ifr_name)){ //copy interface name to ifreq w/size constraint 
+        close(fd);
+        exit_with_error("Failed to copy interface name");
+    }
     if(ioctl(fd, SIOCGIFHWADDR, &ifr) < 0){ //io control, SIOCGIFHWADDR fills hwaddr
         close(fd);
         exit_with_error("ioctl failed to get mac address");
@@ -199,6 +206,7 @@ void logpayload(uint8_t *buffer, int buf_len, int iphdrlen, uint8_t t_protocol, 
         }
         fprintf(log_file, "%02X ", payload[i]);
     }
+    fprintf(log_file, "\n");
 }
 
 
@@ -207,8 +215,9 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     //raw packet data order, hdr = header
     //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
     //All countain information on what layer above its' protocol is, ie) eth knows network layer's protocol (ip)
-    
+
     //extract eth header
+    if(buf_len < (int)sizeof(struct ethhdr)){ return; }
     struct ethhdr *eth = (struct ethhdr *)buffer; //typecast buffer to parse eth header
 
     if(ntohs(eth->h_proto) != ETH_P_IP){ //checks if IP protocol (IPv4)
@@ -222,9 +231,12 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     }
 
     //extract ip header
+    if(buf_len < (int)sizeof(struct ethhdr) + (int)sizeof(struct iphdr)){ return; }
     struct iphdr *ip = (struct iphdr *)(buffer + sizeof(struct ethhdr));
     //iphdr has variable options, makes getting size difficult
     int ip_header_len = ip->ihl*4; //ihl is internet header length in 32 bit words, convert to bytes
+    if(ip_header_len < (int)sizeof(struct iphdr)){ return; }
+    if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len){ return; }
 
     memset(&source_addr, 0, sizeof(source_addr)); //zeroing out/resetting
     memset(&dest_addr, 0, sizeof(dest_addr));
@@ -249,14 +261,17 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     if(filter->transfer_protocol == IPPROTO_TCP && ip->protocol!=IPPROTO_TCP){ return; }
 
     if(ip->protocol == IPPROTO_TCP){ //how to check if it is tcp
+        if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len + sizeof(struct tcphdr)){ return; }
         tcp = (struct tcphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
         //ntohl or s, wait so when i get port from my machine it gives host?
+        if(tcp->doff*4 < (int)sizeof(struct tcphdr)){ return; }
+        if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len + tcp->doff*4){ return; }
         if(filtering_port(filter, ntohs(tcp->source), ntohs(tcp->dest)) == false){
             return;
         }
-        if(filter->transfer_protocol == IPPROTO_TCP){}
     }
     else if(ip->protocol == IPPROTO_UDP){
+        if(buf_len < (int)sizeof(struct ethhdr) + ip_header_len + (int)sizeof(struct udphdr)){ return; }
         udp = (struct udphdr*)(buffer + ip_header_len + sizeof(struct ethhdr));
         if(filtering_port(filter, ntohs(udp->source), ntohs(udp->dest)) == false){
             return;
@@ -268,10 +283,10 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
 
     logETH(eth, log_file);
     logIP(ip, log_file);
-    if(ip->protocol == IPPROTO_TCP && tcp != NULL){
+    if(ip->protocol == IPPROTO_TCP){
         logTCP(tcp, log_file);
     }
-    else if(ip->protocol == IPPROTO_UDP && udp != NULL){
+    else if(ip->protocol == IPPROTO_UDP){
         logUDP(udp, log_file);
     }
     logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);
@@ -288,14 +303,26 @@ int main(int argc, char *argv[]){
     int sockfd, saddr_len, buf_len;
 
     uint8_t *buffer = (uint8_t *)malloc(65536); //buffer hold packet data, 65536 max IP packet - by bytesn(uint8_t)
+    if(buffer == NULL){
+        exit_with_error("Failed to allocate memory for packet buffer");
+    }
     memset(buffer, 0, 65536); //zero out buffer
 
     capnetraw_onoff(CAP_SET); //enable CAP_NET_RAW
     sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL)); //family packet, type raw, have to use ETH_P_ALL bc it will not give u IP packets going out otherwise
     //sits below IP layer, not necessarily actually ethernet just in that format, wifi gets changed to it too - its just an old name
     cap_t caps = cap_get_proc();
-    cap_clear(caps);
-    cap_set_proc(caps);
+    if(!caps){
+        exit_with_error("Failed to get process capabilities");
+    }
+    if(cap_clear(caps) == -1){
+        cap_free(caps);
+        exit_with_error("Failed to clear capabilities");
+    }
+    if(cap_set_proc(caps) == -1){
+        cap_free(caps);
+        exit_with_error("Failed to set process capabilities");
+    }
     cap_free(caps);
     
     if(sockfd < 0){

@@ -23,6 +23,8 @@
 #include <sys/capability.h> //for capabilities
 //sudo apt install libcap-dev
 
+#include <poll.h>
+
 #include <unistd.h> 
 #include <getopt.h> //gives optarg for getopt(linux, the ^ otherwise i think)
 
@@ -443,19 +445,48 @@ int main(int argc, char *argv[]){
     /* struct sockaddr saddr; 
     int sockfd, saddr_len, buf_len; */
     //MAIN LOOOP
+
+    //adding terminate by user input, poll to fix blocking
+    struct pollfd fds[2]; //set to memory if need to reallocate for variable num of connection 
+    fds[0].fd = sockfd;
+    fds[0].events = POLLIN; //wait input on socket
+    fds[1].fd = STDIN_FILENO; //stdin
+    fds[1].events = POLLIN; 
+
     int n = 0;
-    while(!stop){ 
-        saddr_len = sizeof(saddr);
-        buf_len = recvfrom(sockfd, buffer, 65536-1, 0, &saddr, (socklen_t*) &saddr_len);
-        if(buf_len < 0){
-            if(errno == EINTR){ //interrupted by signal, break
+    while(!stop){
+        int poll_cnt = poll(fds, 2, -1); //wait indefinitely for input
+        if(poll_cnt < 0){
+            if(errno == EINTR){ //asleep in poll, sigint arrives, stop=1, poll returns -1, errno=EINTR, break
                 break;
             }
-            exit_with_error("Failed to receive packets");
+            exit_with_error("poll failed");
         }
-        process_packet(buffer, buf_len, &filter, log_file);
-        fflush(log_file);
-        n++;
+
+        if(fds[1].revents & POLLIN){
+            char buffer2[100];
+            ssize_t bytes_read = read(STDIN_FILENO, buffer2, sizeof(buffer2) - 1);
+            if(bytes_read <= 0){
+                break;
+            }
+            buffer2[bytes_read] = '\0'; //null ending for str
+            if(buffer2[0] == 'q'){
+                break;
+            }
+        }
+        if(fds[0].revents & POLLIN){
+            saddr_len = sizeof(saddr);
+            buf_len = recvfrom(sockfd, buffer, 65536-1, 0, &saddr, (socklen_t*) &saddr_len);
+            if(buf_len < 0){
+                if(errno == EINTR){ //interrupted by signal, break
+                    break;
+                }
+                exit_with_error("Failed to receive packets");
+            }
+            process_packet(buffer, buf_len, &filter, log_file);
+            fflush(log_file);
+            n++;
+        }
     }
     fclose(log_file);
     free(buffer);

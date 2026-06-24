@@ -2,6 +2,8 @@ executables/
 *.o
 a.out
 
+sniffer/sniff.log
+sniffer/sniffer1
 
 
 

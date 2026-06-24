@@ -22,7 +22,7 @@ Security Considerations:
 - CAP_NET_RAW, turned off +pe after socket made
 - bound checks (checking all the lengths and not trusting them for what they say the are)
 - signal handling for exiting
-- poll for terminal exiting
+- poll for exiting via terminal
 
 Next steps/Improvements:
 Use PACKET_MMAP - it's the optimized version of af_packet much higher performance
@@ -31,6 +31,7 @@ Use PACKET_MMAP - it's the optimized version of af_packet much higher performanc
 - BPF: can process packets in the kernel (ie) filtering) before copying into memory (eBPF, cBPF)
 - add exiting based on user input using poll to manage blocking
 - refine poll with ppoll, if after while(!stop) before poll i get SIGINT or just libevent
+- promiscuous mode
 
 Here's the project idea:
 A chat service type thing but to make it interesting you can give yourself a pfp and it'll show like "bill" calling 

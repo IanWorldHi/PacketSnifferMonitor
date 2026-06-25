@@ -1,3 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>      
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packet Visualizing</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>a
+        <h1>Task Manager</h1>
+    </header>
+    <main>
+        <section class="add-task">
+            <input type = "text" id="task-input" placeholder="Enter a new task">
+            <button id="add-task-btn">Add Task</button>
+        </section>
+        
+        <div class="board">
+            <div class="list" id="todoList">
+                <h2>To Do</h2>
+                <div class="tasks" id="todoTasks"></div>
+            </div>
+            <div class="list" id="inProgressList">
+                <h2>In Progress</h2>
+                <div class="tasks" id="inProgressTasks"></div>
+            </div>
+            <div class="list" id="doneList">
+                <h2>Done</h2>
+                <div class="tasks" id="doneTasks"></div>
+            </div>
+        </div>
+    </main> 
+
+    <script src="script.js"></script>
+</body>
+</html>
+
 
 
 

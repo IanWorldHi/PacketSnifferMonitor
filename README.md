@@ -36,7 +36,6 @@ Use PACKET_MMAP - it's the optimized version of af_packet much higher performanc
 Here's the project idea:
 A chat service type thing but to make it interesting you can give yourself a pfp and it'll show like "bill" calling 
 
-test2
 
 -->
 

@@ -1,0 +1,124 @@
+:root{
+    --ink: #061d2e; 
+    --text: #ffffff;
+    --line:  #e1f8fa;
+    --muted: #b3ceed;
+    --statback: rgba(63, 214, 194, 0.04);
+}
+
+body {
+    margin: 0 auto;
+    background:var(--ink); 
+    color:var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding:24px; 
+}
+
+main {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+        ". top"
+        "sidebar table";
+    gap: 16px 20px;
+    align-items: start;
+}
+
+.top         { grid-area: top; }
+.sidebar     { grid-area: sidebar; }
+main > table { grid-area: table; }
+
+.sidebar .stats.filters {
+    height: 100%;
+}
+
+header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 20px;
+    font: Verdana;
+    letter-spacing: .02em;
+    color: #ffffff;
+}
+
+.stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.statcard {
+    background:var(--statback);
+    border: 1px solid rgba(63, 214, 194, 0.25);
+    border-radius: 10px;
+    padding: 5px 8px;
+    min-width: 120px;
+}
+
+.statcard .label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.statcard .value {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.stats.filters {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(63, 214, 194, 0.25);
+    border-radius: 8px;
+    background:var(--statback);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.filterrow {
+    margin-bottom: 6px;
+}
+
+.filterrow .label {
+    display: block;
+    opacity: 0.8;
+}
+
+.filterrow .value {
+    display: block;
+    font-weight: 600;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font: 13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+thead {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 300;
+    font-size: 14px;
+    padding: 8px 10px;
+    border-bottom: 2.5px solid var(--line);
+}
+
+/* td.empty { //change to maybe change to different view
+    vertical-align: top;
+    padding-top: 8px;
+    color: var(--muted);
+} */
+
+
+
+
+
+

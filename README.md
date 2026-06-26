@@ -25,7 +25,8 @@ Security Considerations:
 - poll for exiting via terminal
 
 Next steps/Improvements:
-Use PACKET_MMAP - it's the optimized version of af_packet much higher performance
+- add IPv6, handling for other protocols, promiscuous mode
+- Use PACKET_MMAP - it's the optimized version of af_packet much higher performance
 - normally i do a recvfrom which is a system call (program->kernel and back, the kernel copies its buffer into the program's): hence high performance
 - mmap: kernel and program share a chunk of memory "ring buffer" so rewrites same, exchanges ownership
 - BPF: can process packets in the kernel (ie) filtering) before copying into memory (eBPF, cBPF)

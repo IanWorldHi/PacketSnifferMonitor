@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>      
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input</title>
+    <link rel="stylesheet" href="gui3.css">
+</head>
+<body>
+    <main>
+        <div class="top2">
+            <header>
+                <h1>Packet Visualizing</h1>
+            </header>
+        </div>
+        <form id="inputForm" method="POST" action="/gui.html">
+            <div class="form-row">
+                <label>Source IP
+                    <input type="text" name="srcIp" placeholder="0.0.0.0" pattern="\d{1,3}(\.\d{1,3}){3}">
+                </label>
+                <label>Destination IP
+                    <input type="text" name="dstIp" placeholder="0.0.0.0" pattern="\d{1,3}(\.\d{1,3}){3}">
+                </label>
+                <label>Source Port
+                    <input type="number" name="srcPort" min="0" max="65535">
+                </label>
+                <label>Destination Port
+                    <input type="number" name="dstPort" min="0" max="65535">
+                </label>
+                <Label>Source Interface
+                    <input type="text" name="srcInterface" placeholder="eth0" pattern="[a-zA-Z0-9]+">
+                </Label>
+                <Label>Destination Interface
+                    <input type="text" name="dstInterface" placeholder="eth0" pattern="[a-zA-Z0-9]+">
+                </Label>
+                <label>Protocol<select name="protocol">
+                    <option value="TCP and UDP">ANY</option>
+                    <option value="TCP">TCP</option>
+                    <option value="UDP">UDP</option>
+                </select></label>
+            </div>
+            <button class="btn" type="submit">Add Packet</button>
+        </form>
+    </main> 
+    <script src="gui2.js"></script>
+</body>
+</html>
+
+
+
+
+
+

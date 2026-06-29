@@ -34,6 +34,7 @@ Next steps/Improvements:
 - refine poll with ppoll, if after while(!stop) before poll i get SIGINT or just libevent
 - promiscuous mode
 
+
 Here's the project idea:
 A chat service type thing but to make it interesting you can give yourself a pfp and it'll show like "bill" calling 
 

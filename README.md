@@ -23,6 +23,11 @@ Security Considerations:
 - bound checks (checking all the lengths and not trusting them for what they say the are)
 - signal handling for exiting
 - poll for exiting via terminal
+- websocket with libwebsockets (LWS)
+
+Current frontend:
+- just html css js connected to the backend with a websocket
+- opened by running the c program with localhost
 
 Next steps/Improvements:
 - add IPv6, handling for other protocols, promiscuous mode
@@ -32,7 +37,10 @@ Next steps/Improvements:
 - BPF: can process packets in the kernel (ie) filtering) before copying into memory (eBPF, cBPF)
 - add exiting based on user input using poll to manage blocking
 - refine poll with ppoll, if after while(!stop) before poll i get SIGINT or just libevent
-- promiscuous mode
+- promiscuous mode4
+- frontend improvement: run a node.js server in between so I can have a form page to add the filters and then switch pages securely
+- switch from lws to raw c websocket handling the handshake etc
+
 
 
 Here's the project idea:

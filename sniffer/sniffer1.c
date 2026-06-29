@@ -57,6 +57,9 @@
 //you would call exit_with_error for when you want to throw an error and exit
 //alternative, #include <err.h> err(EXIT_FAILURE, "msg") or errx
 
+char* htmlAddr = "";
+char* browser = "chrome"; //change to edge (msedge), firefox wtv u use 
+
 typedef struct{
     uint8_t transfer_protocol;
     char *source_ip;
@@ -441,6 +444,19 @@ int main(int argc, char *argv[]){
     if(filter.dest_ifname){
         get_mac(filter.dest_ifname, &filter, "dest");
     }
+
+
+    //nevermind again - using websocket server 
+
+    //This instead? -- edit path ofc
+    //system("start %s %s", browser, htmlAddr);
+
+    //system("xdg-open http://localhost:8080 >/dev/null 2>&1 &");
+    //ignore browser output errors - just open it for gui
+    //>/dev/null means redirect stdout to null
+    //2>&1 means redirect stderr to stdout which is null so both go to null
+    //& means run in background so it doesn't block the program
+
 
     /* struct sockaddr saddr; 
     int sockfd, saddr_len, buf_len; */

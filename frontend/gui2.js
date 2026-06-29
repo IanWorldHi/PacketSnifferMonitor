@@ -1,16 +1,26 @@
 console.log('test');
 
-const buffer = [];
+const url = 'http://localhost:8080';
+const maxR0ws = 30;
+const renderMilliseconds = 250;
 //might not be best syntax to get/store the data
 
+//state
+const buffer = [];
 
-const form = document.getElementById('inputForm');
+
+
+//const data = JSON.parse(localStorage.getItem('packetData'));
+//i dont like that it's local storage
+/* const form = document.getElementById('inputForm');
 if(form){
     form.addEventListener('submit', function(e){
         e.preventDefault();
-
+        const data = Object.fromEntries(new FormData(this));
+        localStorage.setItem('packetFilters', JSON.stringify(data));
+        window.location.href = 'gui.html';
     })
-}
+} */
 
 
 //fix up for the input page form

@@ -48,13 +48,20 @@ A chat service type thing but to make it interesting you can give yourself a pfp
 
 Settign up libwebsockets:
 https://libwebsockets.org/lws-api-doc-master/html/md_README_8build.html
+Change settings.json to speicfy where build directory
+Also error in two files - i will double check
+
 
 compile: gcc ws1.c -o test -I/opt/libwebsockets/include -L/opt/libwebsockets/lib -lwebsockets -Wl,-rpath,/opt/libwebsockets/lib
 run: ./test
+Nah I set it right now. just gcc ws1.c -o test
+
 just use pck-config, but i installed to opt so have to configure path
 use a package manager vcpkg
 use dockeffile for dev/build environment
 should have installed to usr/local? submodule git?
+
+
 
 -->
 

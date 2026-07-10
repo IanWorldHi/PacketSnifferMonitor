@@ -24,7 +24,10 @@ struct per_vhost_data_prot1{
 };
 
 static void __prot1_destroy_msg(void *_msg){ //why the underscore?
-
+    struct msg *msg = _msg;
+    free(msg->payload);
+    msg->payload = NULL;
+    msg->len = 0;
 }
 
 callbackFunc(){

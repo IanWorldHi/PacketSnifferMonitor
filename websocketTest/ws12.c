@@ -25,7 +25,7 @@ struct per_vhost_data_prot1{
     int current; //cuurent msg we are caching
 };
 
-//underscore is naming convention for internal helpers for lws
+//underscore is naming convention for internal helpers where caller holds the lock for lws
 static void __prot1_destroy_msg(void *_msg){ 
     struct msg *msg = _msg;
     free(msg->payload);
@@ -40,7 +40,9 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
 
     switch(reason){
         //for fun really the first case
-        case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: //check origin to make sure only the one i want is connecting
+        //check origin to make sure only the one i want is connecting
+        //need curly brackets cuz delceration cant come after case label
+        case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:{
             char origin[128];
             int n = lws_hdr_copy(wsi, origin, sizeof(origin), WSI_TOKEN_ORIGIN);
             if(n<=0){
@@ -52,6 +54,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 return -1;
             }
             break;
+        }
         case LWS_CALLBACK_PROTOCOL_INIT: //intialization
             vhd = lws_protocol_vh_priv_zalloc(lws_get_vhost(wsi), lws_get_protocol(wsi), sizeof(struct per_vhost_data_prot1));
             if(!vhd){

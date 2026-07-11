@@ -7,9 +7,6 @@
 #include "ws12.c"
 //can use compiler flag to shorten includes from libaries
 //event driven library
-//Notes:
-//
-// 
 
 //don't really need these for my application, can add later tho - basically if cases for each then code
 /* enum { 
@@ -33,7 +30,7 @@ static int interrupted;
 //i have to edit the sizes no? 0, NULL, for the last 4 mean defaults?
 static struct lws_protocols protocols[] = {
     {"http", lws_callback_http_dummy, 0, 0, 0, NULL, 0},
-    {"prot1", callbackFunc, 65536, 0, 0, NULL, 0},
+    {"prot1", callbackFunc, sizeof(struct per_session_data_prot1), 65536, 0, NULL, 0},
     //LWS_PLUGIN_PROTOCOL_MINIMAL, //giving undefined error
     LWS_PROTOCOL_LIST_TERM, //sentinel marking end of protocols list
 };

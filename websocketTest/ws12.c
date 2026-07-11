@@ -1,4 +1,6 @@
 #include <libwebsockets.h>
+#include <string.h>
+#include <stdlib.h>
 
 //one per msg
 struct msg{
@@ -23,7 +25,8 @@ struct per_vhost_data_prot1{
     int current; //cuurent msg we are caching
 };
 
-static void __prot1_destroy_msg(void *_msg){ //why the underscore?
+//underscore is naming convention for internal helpers for lws
+static void __prot1_destroy_msg(void *_msg){ 
     struct msg *msg = _msg;
     free(msg->payload);
     msg->payload = NULL;
@@ -36,6 +39,19 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
     int m;
 
     switch(reason){
+        //for fun really the first case
+        case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: //check origin to make sure only the one i want is connecting
+            char origin[128];
+            int n = lws_hdr_copy(wsi, origin, sizeof(origin), WSI_TOKEN_ORIGIN);
+            if(n<=0){
+                lwsl_user("rejecting not origin\n");
+                return -1;
+            }
+            if(strcmp(origin, "http://localhost:7681") != 0){
+                lwsl_user("rejecting origin %s\n", origin);
+                return -1;
+            }
+            break;
         case LWS_CALLBACK_PROTOCOL_INIT: //intialization
             vhd = lws_protocol_vh_priv_zalloc(lws_get_vhost(wsi), lws_get_protocol(wsi), sizeof(struct per_vhost_data_prot1));
             if(!vhd){
@@ -59,17 +75,21 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             if(pss->last == vhd->current) //check not old msg and not empty
                 break;
             m = lws_write(wsi, (unsigned char *)vhd->a_msg.payload + LWS_PRE, vhd->a_msg.len, LWS_WRITE_TEXT);
-
+            if(m < (int)vhd->a_msg.len){
+                lwsl_err("ERROR %d writing to ws socket\n", m);
+                return -1;
+            }
+            pss->last = vhd->current;
             break;
         case LWS_CALLBACK_RECEIVE: //technically dont need it for my use case for now
-            if(vhd->a_msg.payload){ //make it better with ringn examlpe with queue
+            /* if(vhd->a_msg.payload){ //make it better with ringn examlpe with queue
                 //basically if client sends msg, we free old msg and store new one
                 __prot1_destroy_msg(&vhd->a_msg);
             }
             vhd->a_msg.len = len;
             vhd->a_msg.payload = malloc(LWS_PRE + len);
             if(!vhd->a_msg.payload){
-                lwsl_user("OOM: dropping\n");
+                lwsl_user("OOM: dropping\n"); //literally a print statement - lvls and all but yeah
                 break;
             }
             memcpy((char*)vhd->a_msg.payload + LWS_PRE, in, len);
@@ -77,7 +97,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             lws_start_foreach_llp(struct per_session_data_prot1 **, ppss, vhd->pss_list){
                 lws_callback_on_writable((*ppss)->wsi);
             } lws_end_foreach_llp(ppss, pss_list);
-            //loops through each client and calls callback on each one
+            //loops through each client and calls callback on each one */
             break;
         default:
             break;
@@ -85,15 +105,17 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
     return 0;
 }
 
-#define CALLBACKPROTOCOL1 \ 
+/* #define CALLBACKPROTOCOL1 \
 { \
-    "name?" \
+    "prot1", \
     callbackFunc, \
-    sizeof(struct per_session_data_prot1), \ 
-    128, \
+    sizeof(struct per_session_data_prot1), \
+    65536, \
     0, NULL, 0 \
-}
+} */
 // max size? other stuff in here gotta add
+//gonna hve to make it a lot bigger or reasmmble it
+//name has to match exact
 
 
 

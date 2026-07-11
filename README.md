@@ -61,7 +61,7 @@ use a package manager vcpkg
 use dockeffile for dev/build environment
 should have installed to usr/local? submodule git?
 
-
+I guess I should follow the header architecture
 
 -->
 

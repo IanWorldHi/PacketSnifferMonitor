@@ -420,7 +420,7 @@ int main(int argc, char *argv[]){
     }
 
     //haven't done option for Any yet - functionality is NOT there yet
-    printf("Filter settings:\n");
+    /* printf("Filter settings:\n");
     printf("Source IP: %s\n", filter.source_ip ? filter.source_ip : "Any");
     printf("Destination IP: %s\n", filter.dest_ip ? filter.dest_ip : "Any");
     printf("Source Port: %u\n", filter.source_port ? filter.source_port : 0);
@@ -428,7 +428,7 @@ int main(int argc, char *argv[]){
     printf("Source Interface: %s\n", filter.source_ifname ? filter.source_ifname : "Any");
     printf("Destination Interface: %s\n", filter.dest_ifname ? filter.dest_ifname : "Any");
     printf("Transfer Protocol: %s\n", filter.transfer_protocol == IPPROTO_TCP ? "TCP" : filter.transfer_protocol == IPPROTO_UDP ? "UDP" : "Any");
-    printf("Log File: %s\n", log[0] ? log : "None");
+    printf("Log File: %s\n", log[0] ? log : "None"); */
     if(strlen(log) == 0){
         strcpy(log, "sniff_log.txt");
     }
@@ -467,7 +467,7 @@ int main(int argc, char *argv[]){
     fds[0].fd = sockfd;
     fds[0].events = POLLIN; //wait input on socket
     fds[1].fd = STDIN_FILENO; //stdin
-    fds[1].events = POLLIN; 
+    fds[1].events = POLLIN;  
 
     int n = 0;
     while(!stop){

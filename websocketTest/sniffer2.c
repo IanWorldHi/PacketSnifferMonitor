@@ -231,6 +231,14 @@ void logpayload(uint8_t *buffer, int buf_len, int iphdrlen, uint8_t t_protocol, 
     fprintf(log_file, "\n");
 }
 
+void logJSON(char *protocoler, struct iphdr *ip, uint16_t source_port, uint16_t dest_port, int num_bytes, FILE *log_file){
+    char src_ip[INET_ADDRSTRLEN], dst_ip[INET_ADDRSTRLEN];
+    strlcpy(src_ip, inet_ntoa(source_addr.sin_addr), sizeof(src_ip));
+    strlcpy(dst_ip, inet_ntoa(dest_addr.sin_addr), sizeof(dst_ip));
+    printf("{\"source_ip\": \"%s\", \"dest_ip\": \"%s\", \"source_port\": %u, \"dest_port\": %u, \"protocol\": \"%s\", \"bytes\": %d}\n", 
+        src_ip, dst_ip, source_port, dest_port, protocoler, num_bytes);
+    fflush(stdout);
+}
 
 //change to return smth later if i want to log more info
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
@@ -303,16 +311,17 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
         return;
     }
 
-    logETH(eth, log_file);
-    logIP(ip, log_file);
+    //logETH(eth, log_file);
+    //logIP(ip, log_file);
     if(ip->protocol == IPPROTO_TCP){
-        logTCP(tcp, log_file);
+        //logTCP(tcp, log_file);
+        logJSON("TCP", ip, ntohs(tcp->source), ntohs(tcp->dest), buf_len, log_file);
     }
     else if(ip->protocol == IPPROTO_UDP){
-        logUDP(udp, log_file);
+        //logUDP(udp, log_file);
+        logJSON("UDP", ip, ntohs(udp->source), ntohs(udp->dest), buf_len, log_file);
     }
-    logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);
-
+    //logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);
 }
 
 int main(int argc, char *argv[]){
@@ -420,15 +429,6 @@ int main(int argc, char *argv[]){
     }
 
     //haven't done option for Any yet - functionality is NOT there yet
-    printf("Filter settings:\n");
-    printf("Source IP: %s\n", filter.source_ip ? filter.source_ip : "Any");
-    printf("Destination IP: %s\n", filter.dest_ip ? filter.dest_ip : "Any");
-    printf("Source Port: %u\n", filter.source_port ? filter.source_port : 0);
-    printf("Destination Port: %u\n", filter.dest_port ? filter.dest_port : 0);
-    printf("Source Interface: %s\n", filter.source_ifname ? filter.source_ifname : "Any");
-    printf("Destination Interface: %s\n", filter.dest_ifname ? filter.dest_ifname : "Any");
-    printf("Transfer Protocol: %s\n", filter.transfer_protocol == IPPROTO_TCP ? "TCP" : filter.transfer_protocol == IPPROTO_UDP ? "UDP" : "Any");
-    printf("Log File: %s\n", log[0] ? log : "None");
     if(strlen(log) == 0){
         strcpy(log, "sniff_log.txt");
     }
@@ -489,7 +489,7 @@ int main(int argc, char *argv[]){
             if(buffer2[0] == 'q'){
                 break;
             }
-        }
+        } 
         if(fds[0].revents & POLLIN){
             saddr_len = sizeof(saddr);
             buf_len = recvfrom(sockfd, buffer, 65536-1, 0, &saddr, (socklen_t*) &saddr_len);

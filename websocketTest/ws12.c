@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+static int interrupted;
+
 //one per msg
 struct msg{
     void *payload; //malloced
@@ -25,8 +27,7 @@ struct per_vhost_data_prot1{
     int current; //cuurent msg we are caching
 };
 
-//underscore is naming convention for internal helpers where caller holds the lock for lws
-static void __prot1_destroy_msg(void *_msg){ 
+static void prot1_destroy_msg(void *_msg){ 
     struct msg *msg = _msg;
     free(msg->payload);
     msg->payload = NULL;
@@ -87,7 +88,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
         case LWS_CALLBACK_RECEIVE: //technically dont need it for my use case for now
             /* if(vhd->a_msg.payload){ //make it better with ringn examlpe with queue
                 //basically if client sends msg, we free old msg and store new one
-                __prot1_destroy_msg(&vhd->a_msg);
+                prot1_destroy_msg(&vhd->a_msg);
             }
             vhd->a_msg.len = len;
             vhd->a_msg.payload = malloc(LWS_PRE + len);

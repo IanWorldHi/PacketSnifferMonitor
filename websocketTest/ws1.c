@@ -26,8 +26,6 @@ static const struct lws_switches switches[] = {
 	[LWS_SW_HELP]	= { "--help",		"Show this help information" },
 }; */
 
-static int interrupted;
-
 //i have to edit the sizes no? 0, NULL, for the last 4 mean defaults?
 static struct lws_protocols protocols[] = {
     {"http", lws_callback_http_dummy, 0, 0, 0, NULL, 0},

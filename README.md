@@ -63,6 +63,9 @@ should have installed to usr/local? submodule git?
 
 I guess I should follow the header architecture
 
+Path for adding sniffer event loop into the web socket one:
+minimal-examples-lowlevel/raw/minimal-raw-file/minimal-raw-file.c
+
 -->
 
 

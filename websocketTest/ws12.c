@@ -35,6 +35,23 @@ static void prot1_destroy_msg(void *_msg){
     msg->len = 0;
 }
 
+static void sender(struct per_vhost_data_prot1 *vhd, char *msg, size_t len){
+    if(vhd->a_msg.payload){
+        prot1_destroy_msg(&vhd->a_msg);
+    }
+    vhd->a_msg.payload = malloc(LWS_PRE + len);
+    if(!vhd->a_msg.payload){
+        lwsl_user("OOM: dropping\n");
+        return;
+    }
+    memcpy((char*)vhd->a_msg.payload + LWS_PRE, msg, len);
+    vhd->a_msg.len = len;
+    vhd->current++;
+    lws_start_foreach_llp(struct per_session_data_prot1 **, ppss, vhd->pss_list){
+        lws_callback_on_writable((*ppss)->wsi);
+    } lws_end_foreach_llp(ppss, pss_list);
+}
+
 static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len){
     struct per_session_data_prot1 *pss = (struct per_session_data_prot1 *)user;
     struct per_vhost_data_prot1 *vhd = (struct per_vhost_data_prot1 *)lws_protocol_vh_priv_get(lws_get_vhost(wsi), lws_get_protocol(wsi));
@@ -81,6 +98,10 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
         case LWS_CALLBACK_CLOSED:
             lws_ll_fwd_remove(struct per_session_data_prot1, pss_list, pss, vhd->pss_list);
             break;
+        case LWS_CALLBACK_RAW_CLOSE_FILE:
+            lwsl_user("stdin closed\n");
+            interrupted = 1;
+            break;
         case LWS_CALLBACK_SERVER_WRITEABLE:
             if(!vhd->a_msg.payload) //funny syntax messes with my muscle memory
                 break;
@@ -112,19 +133,12 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             //loops through each client and calls callback on each one */
             break;
         case LWS_CALLBACK_RAW_RX_FILE:
+            static char buf[65536]; //overarching buffer
+            static size_t acc_len = 0;
             char *p;
             int r;
-            if(vhd->a_msg.payload){
-                prot1_destroy_msg(&vhd->a_msg);
-            }
-            //vhd->a_msg.len = 65536;
-            vhd->a_msg.payload = malloc(LWS_PRE + 65536);
-            if(!vhd->a_msg.payload){
-                lwsl_user("OOM: dropping\n");
-                break;
-            }
             p = (char *)vhd->a_msg.payload + LWS_PRE;
-            r = (int)read(STDIN_FILENO, p, 65536);
+            r = (int)read(STDIN_FILENO, p, 65536); //overkill size
             if(r==0){
                 lwsl_user("EOF: exiting\n");
                 interrupted = 1;
@@ -134,11 +148,24 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 lwsl_user("Failed read\n");
                 break;
             }
-            vhd->a_msg.len = (size_t)r;
-            vhd->current++;
-            lws_start_foreach_llp(struct per_session_data_prot1 **, ppss, vhd->pss_list){
-                lws_callback_on_writable((*ppss)->wsi);
-            } lws_end_foreach_llp(ppss, pss_list);
+            if(acc_len + (size_t)r > sizeof(buf)){
+                acc_len = 0; //reset buffer if overflow
+                //memset(buf, 0, 65536); 
+            }
+            memcpy(buf+acc_len, p, r);
+            acc_len+=r;
+            
+            size_t start = 0;
+            for(size_t i = 0; i<acc_len; i++){
+                if(buf[i] == '\n'){
+                    if(i>start){
+                        sender(vhd, buf+start, i-start);
+                    }
+                    start = i+1;
+                }
+            }
+            acc_len -= start;
+            memmove(buf, buf+start, acc_len);
             break;
         default:
             break;

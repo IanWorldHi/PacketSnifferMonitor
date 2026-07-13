@@ -66,6 +66,10 @@ I guess I should follow the header architecture
 Path for adding sniffer event loop into the web socket one:
 minimal-examples-lowlevel/raw/minimal-raw-file/minimal-raw-file.c
 
+add ring buffer: https://github.com/warmcat/libwebsockets/blob/main/minimal-examples-lowlevel/ws-server/minimal-ws-server-ring/protocol_lws_minimal.c
+
+I think there are a lot of other examples ofr other optimizations
+
 -->
 
 

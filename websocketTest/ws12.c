@@ -1,6 +1,7 @@
 #include <libwebsockets.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 static int interrupted;
 
@@ -38,6 +39,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
     struct per_session_data_prot1 *pss = (struct per_session_data_prot1 *)user;
     struct per_vhost_data_prot1 *vhd = (struct per_vhost_data_prot1 *)lws_protocol_vh_priv_get(lws_get_vhost(wsi), lws_get_protocol(wsi));
     int m;
+    lws_sock_file_fd_type u;
 
     switch(reason){
         //for fun really the first case
@@ -64,6 +66,12 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             vhd->context = lws_get_context(wsi);
             vhd->protocol = lws_get_protocol(wsi);
             vhd->vhost = lws_get_vhost(wsi);
+            
+            u.filefd = (lws_filefd_type)(long long)STDIN_FILENO;
+            if(!lws_adopt_descriptor(lws_get_vhost(wsi), LWS_ADOPT_RAW_FILE_DESC, u, "prot1", NULL)){
+                lwsl_err("Failed to adopt stdin\n");
+                return 1;
+            }
             break;
         case LWS_CALLBACK_ESTABLISHED: //new connection/client established
             lws_ll_fwd_insert(pss, pss_list, vhd->pss_list);
@@ -102,6 +110,35 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 lws_callback_on_writable((*ppss)->wsi);
             } lws_end_foreach_llp(ppss, pss_list);
             //loops through each client and calls callback on each one */
+            break;
+        case LWS_CALLBACK_RAW_RX_FILE:
+            char *p;
+            int r;
+            if(vhd->a_msg.payload){
+                prot1_destroy_msg(&vhd->a_msg);
+            }
+            //vhd->a_msg.len = 65536;
+            vhd->a_msg.payload = malloc(LWS_PRE + 65536);
+            if(!vhd->a_msg.payload){
+                lwsl_user("OOM: dropping\n");
+                break;
+            }
+            p = (char *)vhd->a_msg.payload + LWS_PRE;
+            r = (int)read(STDIN_FILENO, p, 65536);
+            if(r==0){
+                lwsl_user("EOF: exiting\n");
+                interrupted = 1;
+                break;
+            }
+            if(r<0){
+                lwsl_user("Failed read\n");
+                break;
+            }
+            vhd->a_msg.len = (size_t)r;
+            vhd->current++;
+            lws_start_foreach_llp(struct per_session_data_prot1 **, ppss, vhd->pss_list){
+                lws_callback_on_writable((*ppss)->wsi);
+            } lws_end_foreach_llp(ppss, pss_list);
             break;
         default:
             break;

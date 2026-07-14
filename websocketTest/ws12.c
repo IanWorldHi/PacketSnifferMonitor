@@ -165,10 +165,11 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 lwsl_user("Failed read\n");
                 break;
             }
-            if(acc_len + (size_t)r > sizeof(buf)){
+            /* if(sizeof(buf) - acc_len < (size_t)r){
                 acc_len = 0; //reset buffer if overflow
                 //memset(buf, 0, 65536); 
-            }
+            } */
+            //in my code scenario i dont htink i will ever overflow
             acc_len+=r;
             
             size_t start = 0;

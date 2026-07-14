@@ -16,30 +16,51 @@ const rows = document.getAnimations('rows');
 let packetsProcessed = 0;
 let packetsPerSecond = 0;
 
+setInterval(() => {
 
-function new_ws(){ //hardcoded rn
-    return new WebSocket("ws://localhost:7681", "prot1");
+}, 1000);
+
+function filters(){
+
 }
 
-function handlePacket(packet){
-    const packeter = JSON.parse(packet.data);
+function addRow(packet){
     
-};
-
-const ws = nen_ws();
-ws.onmessage = function(e){
-    
-};
-
-ws.onopen = function(e){
-    console.log('ws opened');
 }
-ws.onclose = function(e){
-    console.log('ws closed');
-};
-ws.onerror = function(e){
-    console.log('ws error');
+
+function main(){
+    const ws = new WebSocket("ws://localhost:7681", "prot1");
+
+    ws.onmessage = function(e){
+        let packeter;
+        try{
+            packeter = JSON.parse(packet.data); 
+        }
+        catch(e){
+            console.log('error parsing packet data');
+        }
+        if(packeter.type == "sidebar"){
+            filters(packater);
+            return;
+        }
+        addRow(packeter);
+
+
+    };
+
+    ws.onopen = function(e){
+        console.log('ws opened');
+    }
+    ws.onclose = function(e){
+        console.log('ws closed');
+    };
+    ws.onerror = function(e){
+        console.log('ws error');
+    }
+
 }
+document.addEventListener('DOMContentLoaded', main);
+
 
 
 //const data = JSON.parse(localStorage.getItem('packetData'));

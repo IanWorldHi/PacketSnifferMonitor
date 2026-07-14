@@ -48,13 +48,14 @@ function main(){
     ws.onmessage = function(e){
         let packeter;
         try{
-            packeter = JSON.parse(packet.data); 
+            packeter = JSON.parse(e.data); 
         }
-        catch(e){
+        catch(err){
             console.log('error parsing packet data');
+            return;
         }
         if(packeter.type == "sidebar"){
-            filters(packater);
+            filters(packeter);
             return;
         }
         addRow(packeter);

@@ -97,6 +97,7 @@ header {
 
 table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font: 13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
 }

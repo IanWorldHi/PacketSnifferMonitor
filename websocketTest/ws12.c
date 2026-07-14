@@ -118,7 +118,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             interrupted = 1;
             break;
         case LWS_CALLBACK_SERVER_WRITEABLE:
-            const struct msg *a_msg = lws_ring_get_element(vhd->ring, pss->tail);
+            {const struct msg *a_msg = lws_ring_get_element(vhd->ring, &pss->tail);
             if(!a_msg) //funny syntax messes with my muscle memory
                 break;
             m = lws_write(wsi, (unsigned char *)a_msg->payload + LWS_PRE, a_msg->len, LWS_WRITE_TEXT);
@@ -127,8 +127,10 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 return -1;
             }
             lws_ring_consume_and_update_oldest_tail(vhd->ring, struct per_session_data_prot1, &pss->tail, 1, vhd->pss_list, tail, pss_list);
-            if(lws_ring_get_count_free_elements(vhd->ring))
+            if(lws_ring_get_element(vhd->ring, &pss->tail)){
                 lws_callback_on_writable(wsi);
+            }
+            }
             break;
         case LWS_CALLBACK_RECEIVE: //technically dont need it for my use case for now
             /* if(vhd->a_msg.payload){ //make it better with ringn examlpe with queue

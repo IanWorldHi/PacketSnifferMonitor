@@ -1,58 +1,4 @@
-# Packet Monitor/Sniffer
-- C (Linux), libcap, libwebsockets, vanilla html/css/js
-
-Packet sniffer built with raw packets in raw C that captures and filters them into a html, css, js through Websockets which is implemented using libwebsockets. 
-
-Architecture:
-- Two processes connected with a pipe; the packet sniffer and the web socket server
-- Sniffer: takes cmd args, opens a raw packet socket after giving capability then drop capability and permission, parses packets IPv4 UDP and TCP with strict bounds checking, outputs json to web socket
-- WebSocket Server: Buffers into a ring, opens local html, cs, js page (checking origin) 
-- Single threaded, event driven, NOT thread safe
-
-## Demo
-
-## Running for yourself!
-Requirements:
-- Linux, gcc, cmake, libcap, libwebsockets
-```bash
-sudo apt install libcap-dev libwebsockets-dev
-```
-Build:
-```bash
-git clone --recursive-submodules https://github.com/IanWorldHi/NetworkProgramming.git
-cd libwebsockets
-mkdir build && cd build
-cmake ..
-make && sudo make install
-cd ../../Code/
-gcc sniffer2.c -o sniffer -D_GNU_SOURCE -Wall -Wextra -lcap  
-gcc ws1.c -o ws -I/opt/libwebsockets/include -L/opt/libwebsockets/lib -lwebsockets -Wl,-rpath,/opt/libwebsockets/lib
-```
-Run:
-```bash
-sudo setcap cap_net_raw+p ./sniffer
-./sniffer <flags> | ./ws
-```
-Filtering With Flags:
-<table>
-<tr><th>Long option</th><th>Has argument</th><th>Short flag</th><th>Description</th></tr>
-<tr><td><code>--sip</code></td><td>required</td><td><code>-s</code></td><td>source ip</td></tr>
-<tr><td><code>--dip</code></td><td>required</td><td><code>-d</code></td><td>dest ip</td></tr>
-<tr><td><code>--sport</code></td><td>required</td><td><code>-p</code></td><td>source port</td></tr>
-<tr><td><code>--dport</code></td><td>required</td><td><code>-q</code></td><td>dest port</td></tr>
-<tr><td><code>--sif</code></td><td>required</td><td><code>-i</code></td><td>source interface</td></tr>
-<tr><td><code>--dif</code></td><td>required</td><td><code>-j</code></td><td>dest interface</td></tr>
-<tr><td><code>--logfile</code></td><td>required</td><td><code>-f</code></td><td>log file name</td></tr>
-<tr><td><code>--tcp</code></td><td>none</td><td><code>-t</code></td><td>use TCP</td></tr>
-<tr><td><code>--udp</code></td><td>none</td><td><code>-u</code></td><td>use UDP</td></tr>
-</table>
-
-<!-- 
-Improvements:
-
---!>
-
-<!-- 
+# Network Programming
 
 Running on Ubuntu on a VMware workstation pro instance
 - just so testing works better as wsl i think will mess up some of the packets
@@ -64,6 +10,7 @@ Running thru ssh to vs code
 Built using only raw sockets in c with linux sockets.  
 Using AF_PACKET (raw socket type) not PACKET_MMAP
 
+<!-- 
 Can also make like a web extension to see the specific packets a website is sending/reciving
 make a frontend/backend with java?
 - can add a db to it to store like packets from what sources over time/what is the most frequent etc

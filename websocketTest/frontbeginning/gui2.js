@@ -10,22 +10,36 @@ const buffer = [];
 
 //vars
 const packPerSec = document.getElementById('packetsPerSecond');
-const bytesPerSec = document.getElementById('packetsProcessed');
-const rows = document.getAnimations('rows');
+const packProcessed = document.getElementById('packetsProcessed');
+const rows = document.getElementById('rows');
 
 let packetsProcessed = 0;
 let packetsPerSecond = 0;
 
 setInterval(() => {
-
+    packPerSec.textContent = packetsPerSecond;
+    packetsPerSecond = 0;
 }, 1000);
 
 function filters(){
-
+    
 }
 
 function addRow(packet){
-    
+    const tr = document.createElement('tr');
+    const time = new Date().toLocaleString();
+    tr.innerHTML = 
+        `<td>${time}</td>
+        <td>${packet.source_ip}</td>
+        <td>${packet.dest_ip}</td>
+        <td>${packet.source_port}</td>
+        <td>${packet.dest_port}</td>
+        <td>${packet.protocol}</td>
+        <td>${packet.bytes}</td>`;
+    rows.prepend(tr);
+    while(rows.childElementCount > maxR0ws){
+        rows.removeChild(rows.lastChild);
+    }
 }
 
 function main(){
@@ -44,8 +58,9 @@ function main(){
             return;
         }
         addRow(packeter);
-
-
+        packetsProcessed++;
+        packProcessed.textContent = packetsProcessed;
+        packetsPerSecond++;
     };
 
     ws.onopen = function(e){

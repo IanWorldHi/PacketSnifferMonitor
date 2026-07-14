@@ -15,7 +15,7 @@ struct msg{
 struct per_session_data_prot1{ 
     struct per_session_data_prot1 *pss_list; //linked list of all sessions
     struct lws *wsi; //websocket instance
-    int last; //last msg sent num
+    uint32_t tail;
 };
 
 //One for vhost
@@ -24,8 +24,7 @@ struct per_vhost_data_prot1{
     struct lws_vhost *vhost;
     const struct lws_protocols *protocol;
     struct per_session_data_prot1 *pss_list; 
-    struct msg a_msg; //one pending msg
-    int current; //cuurent msg we are caching
+    struct lws_ring *ring; //ring buffer for messages instead of struct msg
 };
 
 static void prot1_destroy_msg(void *_msg){ 
@@ -36,17 +35,24 @@ static void prot1_destroy_msg(void *_msg){
 }
 
 static void sender(struct per_vhost_data_prot1 *vhd, char *msg, size_t len){
-    if(vhd->a_msg.payload){
-        prot1_destroy_msg(&vhd->a_msg);
-    }
-    vhd->a_msg.payload = malloc(LWS_PRE + len);
-    if(!vhd->a_msg.payload){
-        lwsl_user("OOM: dropping\n");
+    struct msg a_msg;
+    if(!lws_ring_get_count_free_elements(vhd->ring)){
+        lwsl_user("ring full, dropping\n");   // slow/absent client: drop newest
         return;
     }
-    memcpy((char*)vhd->a_msg.payload + LWS_PRE, msg, len);
-    vhd->a_msg.len = len;
-    vhd->current++;
+    a_msg.len = len;
+    a_msg.payload = malloc(LWS_PRE + len);
+    if(!a_msg.payload){ 
+        lwsl_user("OOM: dropping\n"); 
+        return; 
+    }
+    memcpy((char *)a_msg.payload + LWS_PRE, msg, len);
+
+    if(!lws_ring_insert(vhd->ring, &a_msg, 1)){
+        prot1_destroy_msg(&a_msg);
+        lwsl_user("dropping!\n");
+        return;
+    }
     lws_start_foreach_llp(struct per_session_data_prot1 **, ppss, vhd->pss_list){
         lws_callback_on_writable((*ppss)->wsi);
     } lws_end_foreach_llp(ppss, pss_list);
@@ -84,16 +90,25 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             vhd->protocol = lws_get_protocol(wsi);
             vhd->vhost = lws_get_vhost(wsi);
             
+            vhd->ring = lws_ring_create(sizeof(struct msg), 1024, prot1_destroy_msg); //up to 1024 msgs in ring buffer
+            if(!vhd->ring){
+                lwsl_user("Failed to create ring\n");
+                return 1;
+            }
+
             u.filefd = (lws_filefd_type)(long long)STDIN_FILENO;
             if(!lws_adopt_descriptor_vhost(lws_get_vhost(wsi), LWS_ADOPT_RAW_FILE_DESC, u, "prot1", NULL)){
                 lwsl_err("Failed to adopt stdin\n");
                 return 1;
             }
             break;
+        case LWS_CALLBACK_PROTOCOL_DESTROY:
+            lws_ring_destroy(vhd->ring);
+            break;
         case LWS_CALLBACK_ESTABLISHED: //new connection/client established
             lws_ll_fwd_insert(pss, pss_list, vhd->pss_list);
             pss->wsi = wsi;
-            pss->last = vhd->current;
+            pss->tail = lws_ring_get_oldest_tail(vhd->ring);
             break;
         case LWS_CALLBACK_CLOSED:
             lws_ll_fwd_remove(struct per_session_data_prot1, pss_list, pss, vhd->pss_list);
@@ -103,16 +118,17 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             interrupted = 1;
             break;
         case LWS_CALLBACK_SERVER_WRITEABLE:
-            if(!vhd->a_msg.payload) //funny syntax messes with my muscle memory
+            const struct msg *a_msg = lws_ring_get_element(vhd->ring, pss->tail);
+            if(!a_msg) //funny syntax messes with my muscle memory
                 break;
-            if(pss->last == vhd->current) //check not old msg and not empty
-                break;
-            m = lws_write(wsi, (unsigned char *)vhd->a_msg.payload + LWS_PRE, vhd->a_msg.len, LWS_WRITE_TEXT);
-            if(m < (int)vhd->a_msg.len){
+            m = lws_write(wsi, (unsigned char *)a_msg->payload + LWS_PRE, a_msg->len, LWS_WRITE_TEXT);
+            if(m < (int)a_msg->len){
                 lwsl_err("ERROR %d writing to ws socket\n", m);
                 return -1;
             }
-            pss->last = vhd->current;
+            lws_ring_consume_and_update_oldest_tail(vhd->ring, struct per_session_data_prot1, &pss->tail, 1, vhd->pss_list, tail, pss_list);
+            if(lws_ring_get_count_free_elements(vhd->ring))
+                lws_callback_on_writable(wsi);
             break;
         case LWS_CALLBACK_RECEIVE: //technically dont need it for my use case for now
             /* if(vhd->a_msg.payload){ //make it better with ringn examlpe with queue

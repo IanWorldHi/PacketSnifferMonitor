@@ -1,29 +1,45 @@
 console.log('test');
 
-const url = 'http://localhost:8080';
-const maxR0ws = 30;
+const url = 'http://localhost:7681';
+const maxR0ws = 50;
 const renderMilliseconds = 250;
 //might not be best syntax to get/store the data
 
 //state
 const buffer = [];
 
+//vars
+const packPerSec = document.getElementById('packetsPerSecond');
+const bytesPerSec = document.getElementById('packetsProcessed');
+const rows = document.getAnimations('rows');
+
+let packetsProcessed = 0;
+let packetsPerSecond = 0;
+
+
 function new_ws(){ //hardcoded rn
     return new WebSocket("ws://localhost:7681", "prot1");
 }
 
-const ws = nen_ws();
-ws.onmessage = function(e){
-    buf+=data;
-    let lines = buf.split('\n');
-    buf = lines.pop();
-    lines.forEach(function(line){
-        if(!line) return;
-        let jsoned = JSON.parse(line);
-        
-    });
+function handlePacket(packet){
+    const packeter = JSON.parse(packet.data);
+    
 };
 
+const ws = nen_ws();
+ws.onmessage = function(e){
+    
+};
+
+ws.onopen = function(e){
+    console.log('ws opened');
+}
+ws.onclose = function(e){
+    console.log('ws closed');
+};
+ws.onerror = function(e){
+    console.log('ws error');
+}
 
 
 //const data = JSON.parse(localStorage.getItem('packetData'));

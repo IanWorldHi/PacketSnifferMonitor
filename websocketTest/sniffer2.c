@@ -180,6 +180,7 @@ void logIP(struct iphdr *ip, FILE *log_file){ //just going throuhg the fields of
     fprintf(log_file, "\tTime to Live: %d\n", (uint32_t)ip->ttl); //packets only be forwarded a certain amt of times before expires
     fprintf(log_file, "\tSource IP: %s\n", inet_ntoa(source_addr.sin_addr));
     fprintf(log_file, "\tDestination IP: %s\n", inet_ntoa(dest_addr.sin_addr));
+    //using the global bc easier dont need to wrap, not thread safe tho
     fprintf(log_file, "\tProtocol: %d\n", (uint32_t)ip->protocol);
     fprintf(log_file, "\tChecksum: %d\n", ntohs(ip->check)); //This is the security thingy to detect corruption of header
     //frag offset too - todo with flags etc
@@ -231,7 +232,7 @@ void logpayload(uint8_t *buffer, int buf_len, int iphdrlen, uint8_t t_protocol, 
     fprintf(log_file, "\n");
 }
 
-void logJSON(char *protocoler, struct iphdr *ip, uint16_t source_port, uint16_t dest_port, int num_bytes, FILE *log_file){
+void logJSON(char *protocoler, uint16_t source_port, uint16_t dest_port, int num_bytes){
     char src_ip[INET_ADDRSTRLEN], dst_ip[INET_ADDRSTRLEN];
     strlcpy(src_ip, inet_ntoa(source_addr.sin_addr), sizeof(src_ip));
     strlcpy(dst_ip, inet_ntoa(dest_addr.sin_addr), sizeof(dst_ip));
@@ -242,6 +243,7 @@ void logJSON(char *protocoler, struct iphdr *ip, uint16_t source_port, uint16_t 
 
 //change to return smth later if i want to log more info
 void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE *log_file){
+    (void)log_file;
     //raw packet data order, hdr = header
     //ethernet header -> ip header -> transport layer header (tcp/udp) -> user data
     //All countain information on what layer above its' protocol is, ie) eth knows network layer's protocol (ip)
@@ -315,11 +317,11 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     //logIP(ip, log_file);
     if(ip->protocol == IPPROTO_TCP){
         //logTCP(tcp, log_file);
-        logJSON("TCP", ip, ntohs(tcp->source), ntohs(tcp->dest), buf_len, log_file);
+        logJSON("TCP", ntohs(tcp->source), ntohs(tcp->dest), buf_len);
     }
     else if(ip->protocol == IPPROTO_UDP){
         //logUDP(udp, log_file);
-        logJSON("UDP", ip, ntohs(udp->source), ntohs(udp->dest), buf_len, log_file);
+        logJSON("UDP", ntohs(udp->source), ntohs(udp->dest), buf_len);
     }
     //logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);
 }

@@ -55,6 +55,7 @@ Also error in two files - i will double check
 compile: gcc ws1.c -o test -I/opt/libwebsockets/include -L/opt/libwebsockets/lib -lwebsockets -Wl,-rpath,/opt/libwebsockets/lib
 run: ./test
 Nah I set it right now. just gcc ws1.c -o test
+./sniffer2 | ./test
 
 just use pck-config, but i installed to opt so have to configure path
 use a package manager vcpkg

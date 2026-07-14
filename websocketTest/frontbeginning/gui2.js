@@ -13,7 +13,16 @@ function new_ws(){ //hardcoded rn
 }
 
 const ws = nen_ws();
-
+ws.onmessage = function(e){
+    buf+=data;
+    let lines = buf.split('\n');
+    buf = lines.pop();
+    lines.forEach(function(line){
+        if(!line) return;
+        let jsoned = JSON.parse(line);
+        
+    });
+};
 
 
 

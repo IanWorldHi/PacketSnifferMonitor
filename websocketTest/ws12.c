@@ -85,7 +85,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             vhd->vhost = lws_get_vhost(wsi);
             
             u.filefd = (lws_filefd_type)(long long)STDIN_FILENO;
-            if(!lws_adopt_descriptor(lws_get_vhost(wsi), LWS_ADOPT_RAW_FILE_DESC, u, "prot1", NULL)){
+            if(!lws_adopt_descriptor_vhost(lws_get_vhost(wsi), LWS_ADOPT_RAW_FILE_DESC, u, "prot1", NULL)){
                 lwsl_err("Failed to adopt stdin\n");
                 return 1;
             }
@@ -133,12 +133,11 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             //loops through each client and calls callback on each one */
             break;
         case LWS_CALLBACK_RAW_RX_FILE:
-            static char buf[65536]; //overarching buffer
+            {static char buf[65536]; //overarching buffer
             static size_t acc_len = 0;
-            char *p;
             int r;
-            p = (char *)vhd->a_msg.payload + LWS_PRE;
-            r = (int)read(STDIN_FILENO, p, 65536); //overkill size
+            r = (int)read(lws_get_socket_fd(wsi), buf+acc_len, sizeof(buf)-acc_len); //overkill size
+            //STDIN_FILENO
             if(r==0){
                 lwsl_user("EOF: exiting\n");
                 interrupted = 1;
@@ -152,7 +151,6 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
                 acc_len = 0; //reset buffer if overflow
                 //memset(buf, 0, 65536); 
             }
-            memcpy(buf+acc_len, p, r);
             acc_len+=r;
             
             size_t start = 0;
@@ -166,6 +164,7 @@ static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void 
             }
             acc_len -= start;
             memmove(buf, buf+start, acc_len);
+            }
             break;
         default:
             break;

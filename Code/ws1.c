@@ -45,15 +45,16 @@ static const struct lws_http_mount mount = {
 };
 
 void sigint_handler(int sig){
+    (void)sig;
     interrupted = 1;
 }
 
-static const lws_retry_bo_t retry = { //basically checks if client dead
+/* static const lws_retry_bo_t retry = { //basically checks if client dead
     .secs_since_valid_ping = 10,
     .secs_since_valid_hangup = 30
-};
+}; */
 
-int main(int argc, char **argv){
+int main(){
     struct lws_context_creation_info info;
     struct lws_context *context;
     signal(SIGINT, sigint_handler);

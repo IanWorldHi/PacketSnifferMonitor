@@ -59,6 +59,8 @@ static void sender(struct per_vhost_data_prot1 *vhd, char *msg, size_t len){
 }
 
 static int callbackFunc(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len){
+    (void)in;
+    (void)len;
     struct per_session_data_prot1 *pss = (struct per_session_data_prot1 *)user;
     struct per_vhost_data_prot1 *vhd = (struct per_vhost_data_prot1 *)lws_protocol_vh_priv_get(lws_get_vhost(wsi), lws_get_protocol(wsi));
     int m;

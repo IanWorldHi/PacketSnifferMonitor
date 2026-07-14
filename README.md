@@ -15,18 +15,19 @@ Architecture:
 Requirements:
 - Linux, gcc, cmake, libcap, libwebsockets
 ```bash
-sudo apt install libcap-dev libwebsockets-dev
+sudo apt install build-essential libcap-dev cmake
 ```
 Build:
 ```bash
-git clone --recursive-submodules https://github.com/IanWorldHi/NetworkProgramming.git
-cd libwebsockets
+git clone --recurse-submodules https://github.com/IanWorldHi/PacketSnifferMonitor.git
+cd PacketSnifferMonitor/libwebsockets
 mkdir build && cd build
-cmake ..
+cmake .. -DLWS_WITHOUT_TESTAPPS=ON -DLWS_WITH_SSL=OFF
 make && sudo make install
+sudo ldconfig
 cd ../../Code/
 gcc sniffer2.c -o sniffer -D_GNU_SOURCE -Wall -Wextra -lcap  
-gcc ws1.c -o ws -I/opt/libwebsockets/include -L/opt/libwebsockets/lib -lwebsockets -Wl,-rpath,/opt/libwebsockets/lib
+gcc ws1.c -o ws -Wall -Wextra -lwebsockets
 ```
 Run:
 ```bash
@@ -53,6 +54,7 @@ Improvements:
 --!>
 
 <!-- 
+ldconfig?
 
 Running on Ubuntu on a VMware workstation pro instance
 - just so testing works better as wsl i think will mess up some of the packets

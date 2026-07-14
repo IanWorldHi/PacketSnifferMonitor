@@ -50,7 +50,7 @@
 #include <net/ethernet.h>	//For ether_header
 
 #include <net/if.h>
-
+#include <time.h>
 
 #define exit_with_error(msg) do {perror(msg); exit(EXIT_FAILURE);} while(0)
 //do while is to safely contain block when it's called outside
@@ -238,6 +238,18 @@ void logJSON(char *protocoler, uint16_t source_port, uint16_t dest_port, int num
     strlcpy(dst_ip, inet_ntoa(dest_addr.sin_addr), sizeof(dst_ip));
     printf("{\"source_ip\": \"%s\", \"dest_ip\": \"%s\", \"source_port\": %u, \"dest_port\": %u, \"protocol\": \"%s\", \"bytes\": %d}\n", 
         src_ip, dst_ip, source_port, dest_port, protocoler, num_bytes);
+    fflush(stdout);
+}
+
+void logFilters(packet_filter_t *filter){
+    printf("{\"type\":\"sidebar\"," "\"srcIp\":\"%s\",\"dstIp\":\"%s\"," "\"srcPort\":%u,\"dstPort\":%u," "\"srcIf\":\"%s\",\"dstIf\":\"%s\"," "\"protocol\":\"%s\"}\n",
+           filter->source_ip  ? filter->source_ip  : "",
+           filter->dest_ip    ? filter->dest_ip    : "",
+           filter->source_port, filter->dest_port,
+           filter->source_ifname ? filter->source_ifname : "",
+           filter->dest_ifname   ? filter->dest_ifname   : "",
+           filter->transfer_protocol == IPPROTO_TCP ? "TCP" :
+           filter->transfer_protocol == IPPROTO_UDP ? "UDP" : "");
     fflush(stdout);
 }
 
@@ -470,10 +482,12 @@ int main(int argc, char *argv[]){
     fds[0].events = POLLIN; //wait input on socket
     fds[1].fd = STDIN_FILENO; //stdin
     fds[1].events = POLLIN;  
+    time_t last_time = 0;
+
 
     int n = 0;
     while(!stop){
-        int poll_cnt = poll(fds, 2, -1); //wait indefinitely for input
+        int poll_cnt = poll(fds, 2, 1000); //wakes up at least once per 1000ms
         if(poll_cnt < 0){
             if(errno == EINTR){ //asleep in poll, sigint arrives, stop=1, poll returns -1, errno=EINTR, break
                 break;
@@ -504,6 +518,10 @@ int main(int argc, char *argv[]){
             process_packet(buffer, buf_len, &filter, log_file);
             fflush(log_file);
             n++;
+        }
+        if(time(NULL) != last_time){
+            last_time = time(NULL);
+            logFilters(&filter);
         }
     }
     fclose(log_file);

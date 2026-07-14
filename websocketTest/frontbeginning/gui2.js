@@ -1,12 +1,5 @@
-console.log('test');
-
-const url = 'http://localhost:7681';
+//const url = 'http://localhost:7681';
 const maxR0ws = 50;
-const renderMilliseconds = 250;
-//might not be best syntax to get/store the data
-
-//state
-const buffer = [];
 
 //vars
 const packPerSec = document.getElementById('packetsPerSecond');
@@ -21,8 +14,14 @@ setInterval(() => {
     packetsPerSecond = 0;
 }, 1000);
 
-function filters(){
-    
+function filters(filters){
+    document.getElementById('sourceIp').textContent = filters.srcIp || 'Any';
+    document.getElementById('destIp').textContent = filters.dstIp || 'Any';
+    document.getElementById('sourcePort').textContent = filters.srcPort || 'Any';
+    document.getElementById('destPort').textContent = filters.dstPort || 'Any';
+    document.getElementById('sourceInterface').textContent = filters.srcIf || 'Any';
+    document.getElementById('destInterface').textContent = filters.dstIf || 'Any';
+    document.getElementById('protocol').textContent = filters.protocol || 'Any';
 }
 
 function addRow(packet){

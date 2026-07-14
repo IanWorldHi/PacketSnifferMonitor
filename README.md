@@ -71,6 +71,8 @@ add ring buffer: https://github.com/warmcat/libwebsockets/blob/main/minimal-exam
 
 I think there are a lot of other examples ofr other optimizations
 
+Can change to also log to logfile at the same time
+
 -->
 
 

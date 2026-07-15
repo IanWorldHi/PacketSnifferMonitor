@@ -329,10 +329,16 @@ void process_packet(uint8_t *buffer, int buf_len, packet_filter_t *filter, FILE 
     //logIP(ip, log_file);
     if(ip->protocol == IPPROTO_TCP){
         //logTCP(tcp, log_file);
+        if(ntohs(tcp->source) == 7681 || ntohs(tcp->dest) == 7681){ //ignore packets to ws server
+            return;
+        }
         logJSON("TCP", ntohs(tcp->source), ntohs(tcp->dest), buf_len);
     }
     else if(ip->protocol == IPPROTO_UDP){
         //logUDP(udp, log_file);
+        if(ntohs(udp->source) == 7681 || ntohs(udp->dest) == 7681){
+            return;
+        }
         logJSON("UDP", ntohs(udp->source), ntohs(udp->dest), buf_len);
     }
     //logpayload(buffer, buf_len, ip_header_len, ip->protocol, log_file, tcp);

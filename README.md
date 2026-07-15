@@ -25,7 +25,7 @@ mkdir build && cd build
 cmake .. -DLWS_WITHOUT_TESTAPPS=ON -DLWS_WITH_SSL=OFF
 make && sudo make install
 sudo ldconfig
-cd ../../Code/
+cd ../../../Code/
 gcc sniffer2.c -o sniffer -D_GNU_SOURCE -Wall -Wextra -lcap  
 gcc ws1.c -o ws -Wall -Wextra -lwebsockets
 ```

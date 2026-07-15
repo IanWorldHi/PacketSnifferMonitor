@@ -52,85 +52,17 @@ Filtering With Flags:
 </table>
 
 <!-- 
-Improvements:
-
---!>
-
-<!-- 
-ldconfig?
-
-Running on Ubuntu on a VMware workstation pro instance
-- just so testing works better as wsl i think will mess up some of the packets
-
-IPv6
-gcc
-Running thru ssh to vs code
-
-Built using only raw sockets in c with linux sockets.  
-Using AF_PACKET (raw socket type) not PACKET_MMAP
-
-Can also make like a web extension to see the specific packets a website is sending/reciving
-make a frontend/backend with java?
-- can add a db to it to store like packets from what sources over time/what is the most frequent etc
-i gotta learn some concurrency stuff - prob do it bymself b4 the course
-
-Security Considerations:
-- only giving capability needed and immediately cleared after it is used to create the socket
-- only turning it on when running otherwise executable only has p not e
-- CAP_NET_RAW, turned off +pe after socket made
-- bound checks (checking all the lengths and not trusting them for what they say the are)
-- signal handling for exiting
-- poll for exiting via terminal
-- websocket with libwebsockets (LWS)
-
-Current frontend:
-- just html css js connected to the backend with a websocket
-- opened by running the c program with localhost
-
-Next steps/Improvements:
-- add IPv6, handling for other protocols, promiscuous mode
+Improvements todo:
+add IPv6, handling for other protocols, promiscuous mode
 - Use PACKET_MMAP - it's the optimized version of af_packet much higher performance
 - normally i do a recvfrom which is a system call (program->kernel and back, the kernel copies its buffer into the program's): hence high performance
 - mmap: kernel and program share a chunk of memory "ring buffer" so rewrites same, exchanges ownership
 - BPF: can process packets in the kernel (ie) filtering) before copying into memory (eBPF, cBPF)
-- add exiting based on user input using poll to manage blocking
-- refine poll with ppoll, if after while(!stop) before poll i get SIGINT or just libevent
 - promiscuous mode4
 - frontend improvement: run a node.js server in between so I can have a form page to add the filters and then switch pages securely
 - switch from lws to raw c websocket handling the handshake etc
 
-
-
-Here's the project idea:
-A chat service type thing but to make it interesting you can give yourself a pfp and it'll show like "bill" calling 
-
-Settign up libwebsockets:
-https://libwebsockets.org/lws-api-doc-master/html/md_README_8build.html
-Change settings.json to speicfy where build directory
-Also error in two files - i will double check
-
-
-compile: gcc ws1.c -o test -I/opt/libwebsockets/include -L/opt/libwebsockets/lib -lwebsockets -Wl,-rpath,/opt/libwebsockets/lib
-run: ./test
-Nah I set it right now. just gcc ws1.c -o test
-./sniffer2 | ./test
-
-just use pck-config, but i installed to opt so have to configure path
-use a package manager vcpkg
-use dockeffile for dev/build environment
-should have installed to usr/local? submodule git?
-
-I guess I should follow the header architecture
-
-Path for adding sniffer event loop into the web socket one:
-minimal-examples-lowlevel/raw/minimal-raw-file/minimal-raw-file.c
-
-add ring buffer: https://github.com/warmcat/libwebsockets/blob/main/minimal-examples-lowlevel/ws-server/minimal-ws-server-ring/protocol_lws_minimal.c
-
-I think there are a lot of other examples ofr other optimizations
-
-Can change to also log to logfile at the same time
-
+(Rough work/notes moved to Storage)
 -->
 
 

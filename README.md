@@ -10,6 +10,9 @@ Architecture:
 - Single threaded, event driven, NOT thread safe
 
 ## Demo
+<p align="center">
+  <img src="photos/packetsniffergif.gif" width="700" alt="Demo">
+</p>
 
 ## Running for yourself!
 Requirements:

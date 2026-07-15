@@ -20,7 +20,7 @@ sudo apt install build-essential libcap-dev cmake
 Build:
 ```bash
 git clone --recurse-submodules https://github.com/IanWorldHi/PacketSnifferMonitor.git
-cd PacketSnifferMonitor/libwebsockets
+cd PacketSnifferMonitor/libs/libwebsockets
 mkdir build && cd build
 cmake .. -DLWS_WITHOUT_TESTAPPS=ON -DLWS_WITH_SSL=OFF
 make && sudo make install

@@ -11,7 +11,7 @@ Architecture:
 
 ## Demo
 <p align="center">
-  <img src="photos/demo.gif" width="700" alt="Demo">
+  <img src="photos/packetsniffergif.gif" width="700" alt="Demo">
 </p>
 
 ## Running for yourself!

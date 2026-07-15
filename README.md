@@ -1,13 +1,13 @@
 # Packet Monitor/Sniffer
-- C (Linux), libcap, libwebsockets, vanilla html/css/js
+- C (Linux), libwebsockets, vanilla html/css/js
 
-Packet sniffer built with raw packets in raw C that captures and filters them into a html, css, js through Websockets which is implemented using libwebsockets. 
+Linux Packet sniffer built with raw packets in raw C that captures and filters them into a html, css, js through Websockets which is implemented using libwebsockets. 
 
 Architecture:
 - Two processes connected with a pipe; the packet sniffer and the web socket server
-- Sniffer: takes cmd args, opens a raw packet socket after giving capability then drop capability and permission, parses packets IPv4 UDP and TCP with strict bounds checking, outputs json to web socket
-- WebSocket Server: Buffers into a ring, opens local html, cs, js page (checking origin) 
-- Single threaded, event driven, NOT thread safe
+- Sniffer: takes cmd args, opens a raw packet socket after giving capability then drop capability and permission (libcap), parses packets IPv4 UDP and TCP with strict bounds checking, outputs json to web socket
+- WebSocket Server: Buffers into a ring, opens local html, cs, js page (checking origin) (libwebsocket)
+- Single threaded, event driven
 
 ## Demo
 <p align="center">
@@ -51,17 +51,14 @@ Filtering With Flags:
 <tr><td><code>--udp</code></td><td>none</td><td><code>-u</code></td><td>use UDP</td></tr>
 </table>
 
-<!-- 
-Improvements todo:
-add IPv6, handling for other protocols, promiscuous mode
-- Use PACKET_MMAP - it's the optimized version of af_packet much higher performance
-- normally i do a recvfrom which is a system call (program->kernel and back, the kernel copies its buffer into the program's): hence high performance
-- mmap: kernel and program share a chunk of memory "ring buffer" so rewrites same, exchanges ownership
-- BPF: can process packets in the kernel (ie) filtering) before copying into memory (eBPF, cBPF)
-- promiscuous mode4
-- frontend improvement: run a node.js server in between so I can have a form page to add the filters and then switch pages securely
-- switch from lws to raw c websocket handling the handshake etc
 
+### Improvements Roadmap
+- add IPv6, handling for other protocols, promiscuous mode
+- Use PACKET_MMAP, optimized version of af_packet, ring buffer
+- Use BPF to filter before copying into memmory
+- Switch from lws to raw c for learning and cuztomization
+
+<!-- 
 (Rough work/notes moved to Storage)
 -->
 

@@ -57,9 +57,14 @@ Filtering With Flags:
 - Use PACKET_MMAP, optimized version of af_packet, ring buffer
 - Use BPF to filter before copying into memmory
 - Switch from lws to raw c for learning and cuztomization
+- Clean up: (Change to header - do something with the logfile's more detailed output) 
 
 <!-- 
 (Rough work/notes moved to Storage)
+
+Add customization for ouput of frontend, or option to continue using the log file which outputs a lot more data about the packets which I commented out for now
+Clean up comments
+change including ws1.c to a header file
 -->
 
 

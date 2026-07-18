@@ -1,7 +1,7 @@
 executables/
 *.o
 a.out
-
+.vscode/
 sniffer/sniff.log
 sniffer/sniffer1
 build/

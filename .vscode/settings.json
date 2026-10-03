@@ -1,4 +1,5 @@
 {
     "cmake.sourceDirectory": "/home/bobbert/Desktop/coding/NetworkProgramming/libs/libwebsockets",
     "cmake.buildDirectory": "/home/bobbert/Desktop/coding/NetworkProgramming/libs/libwebsockets/build",
+    "liveServer.settings.port": 8081,
 }

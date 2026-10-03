@@ -7,8 +7,11 @@
 #include <arpa/inet.h>
 
 
-int main(){
+#define PORT 8080
+#define BACKLOG 10
 
+int main(){
+    
 }
 
 

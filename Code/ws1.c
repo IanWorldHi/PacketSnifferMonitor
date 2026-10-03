@@ -63,7 +63,7 @@ int main(){
     lwsl_user("Transmission of parsed raw packet data through websockets(https://libwebsockets.org)\n");
     lws_context_info_defaults(&info, NULL);
     info.port = 7681;
-    info.iface = "127.0.0.1"; 
+    info.iface = "lo";
     info.mounts = &mount;
     info.protocols = protocols;
     info.vhost_name = "localhost";
@@ -78,7 +78,7 @@ int main(){
         return 1;
     }
 
-    system("xdg-open http://localhost:7681");
+    system("xdg-open http://localhost:7681 </dev/null >/dev/null 2>&1 &");
 
     int n = 0;
     while(n>=0 && !interrupted){

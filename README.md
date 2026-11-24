@@ -52,12 +52,17 @@ Filtering With Flags:
 </table>
 
 
-### Improvements Roadmap
+### Improvements/Cleanup Roadmap
 - add IPv6, handling for other protocols, promiscuous mode
 - Use PACKET_MMAP, optimized version of af_packet, ring buffer
 - Use BPF to filter before copying into memmory
-- Switch from lws to raw c for learning and cuztomization
 - Clean up: (Change to header - do something with the logfile's more detailed output - fix edge case) 
+
+### In-Progress Additional features
+- TCP handshake and connection tracking
+- Encryption related tools to see what sites are visited
+- Seeing packets on other devices
+- Switch from lws to raw c for learning and cuztomization
 
 <!-- 
 (Rough work/notes moved to Storage)
